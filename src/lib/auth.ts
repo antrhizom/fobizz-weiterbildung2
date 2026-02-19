@@ -32,11 +32,11 @@ export async function isAdmin(user: FirebaseUser): Promise<boolean> {
 export async function registerParticipant(
   username: string
 ): Promise<{ code: string; email: string; uid: string }> {
-  try {
-    const code = generateCode();
-    const timestamp = Date.now();
-    const virtualEmail = generateVirtualEmail(username, timestamp);
+  const code = generateCode();
+  const timestamp = Date.now();
+  const virtualEmail = generateVirtualEmail(username, timestamp);
 
+  try {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       virtualEmail,
@@ -45,15 +45,20 @@ export async function registerParticipant(
 
     const uid = userCredential.user.uid;
 
-    await setDoc(doc(db, 'fobizz_users', uid), {
-      username: username.trim(),
-      code: code,
-      email: virtualEmail,
-      createdAt: new Date().toISOString(),
-      completedSubtasks: {},
-      ratings: {},
-      isVirtual: true
-    });
+    try {
+      await setDoc(doc(db, 'fobizz_users', uid), {
+        username: username.trim(),
+        code: code,
+        email: virtualEmail,
+        createdAt: new Date().toISOString(),
+        completedSubtasks: {},
+        ratings: {},
+        isVirtual: true
+      });
+    } catch (firestoreError: any) {
+      console.error('Firestore write error:', firestoreError);
+      // Auth user created, Firestore write failed - still return code
+    }
 
     return { code, email: virtualEmail, uid };
   } catch (error: any) {
