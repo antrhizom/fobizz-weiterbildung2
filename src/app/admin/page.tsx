@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getCurrentUser, checkIsAdmin } from '@/lib/auth';
+import { onAuthChange, checkIsAdmin } from '@/lib/auth';
 import { getAllUsers, deleteUser, resetUserProgress, exportAllData } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
@@ -17,8 +17,7 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = getCurrentUser();
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login?mode=admin'); return; }
       const adminStatus = await checkIsAdmin();
       if (!adminStatus) { alert('Keine Admin-Berechtigung!'); router.push('/'); return; }
@@ -26,8 +25,8 @@ export default function AdminPage() {
       const users = await getAllUsers();
       setAllUsers(users);
       setLoading(false);
-    };
-    checkAuth();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   const handleDeleteUser = async (userId: string, username: string) => {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData } from '@/lib/auth';
 import { getAllUsers } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
@@ -18,8 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      const currentUser = getCurrentUser();
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) {
         router.push('/login');
         return;
@@ -31,8 +30,8 @@ export default function DashboardPage() {
       if (userData) setUser(userData);
       setAllUsers(users);
       setLoading(false);
-    };
-    loadData();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   if (loading) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData } from '@/lib/auth';
 import { User } from '@/types';
 import Navigation from '@/components/Navigation';
 import { BookOpen, Target, Brain, Zap, RefreshCw, AlertCircle } from 'lucide-react';
@@ -14,14 +14,13 @@ export default function PaedagogikPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = getCurrentUser();
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
       if (userData) setUser(userData);
       setLoading(false);
-    };
-    checkAuth();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt...</div></div>;

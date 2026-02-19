@@ -39,18 +39,6 @@ export const TASKS: Task[] = [
   },
   {
     id: 4,
-    title: 'Gruppenarbeit A – Austausch & Reflexion',
-    type: 'group',
-    iconEmoji: '👥',
-    subtasks: [
-      'Zwischenstandkontrolle in der Gruppe',
-      'Einzellinks sind auf dem Whiteboard festgehalten'
-    ],
-    whiteboardUrl: 'https://example.com/whiteboard-a',
-    pdfId: 'task4'
-  },
-  {
-    id: 5,
     title: 'Aufgaben & Materialien erstellen',
     type: 'individual',
     iconEmoji: '📝',
@@ -59,10 +47,10 @@ export const TASKS: Task[] = [
       'Ich habe eine Infografik oder ein Arbeitsblatt generiert',
       'Ich habe ein Quiz oder eine Lernkontrolle angelegt'
     ],
-    pdfId: 'task5'
+    pdfId: 'task4'
   },
   {
-    id: 6,
+    id: 5,
     title: 'Inhalte organisieren & teilen',
     type: 'individual',
     iconEmoji: '📂',
@@ -70,31 +58,19 @@ export const TASKS: Task[] = [
       'Ich habe einen Kurs oder eine Sammlung erstellt',
       'Ich habe Inhalte mit Kolleginnen oder Kollegen geteilt'
     ],
+    pdfId: 'task5'
+  },
+  {
+    id: 6,
+    title: 'Reflexion & Transfer',
+    type: 'individual',
+    iconEmoji: '🔍',
+    subtasks: [
+      'Ich habe reflektiert, welche Fobizz-Tools ich regelmässig einsetzen möchte',
+      'Ich habe mindestens eine konkrete Unterrichtsidee mit Fobizz geplant',
+      'Ich habe mein Lieblingsergebnis auf der Pinnwand geteilt'
+    ],
     pdfId: 'task6'
-  },
-  {
-    id: 7,
-    title: 'Gruppenarbeit B – Unterrichtsprojekt planen',
-    type: 'group',
-    iconEmoji: '🗓️',
-    subtasks: [
-      'Wir haben gemeinsam ein Unterrichtsprojekt mit Fobizz geplant',
-      'Projektlinks sind auf dem Whiteboard dokumentiert'
-    ],
-    whiteboardUrl: 'https://example.com/whiteboard-b',
-    pdfId: 'task7'
-  },
-  {
-    id: 8,
-    title: 'Abschluss & Präsentation',
-    type: 'group',
-    iconEmoji: '🏁',
-    subtasks: [
-      'Wir haben unsere Ergebnisse auf dem Padlet geteilt',
-      'Mindestens fünf Links mit kurzer Begründung sind dokumentiert'
-    ],
-    padletUrl: 'https://example.com/padlet',
-    pdfId: 'task8'
   }
 ];
 

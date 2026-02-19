@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData } from '@/lib/auth';
 import { updateUserSubtasks, updateUserRatings } from '@/lib/firestore';
 import { User, TaskRating } from '@/types';
 import { TASKS, RATING_QUESTIONS, RATING_OPTIONS } from '@/lib/constants';
@@ -18,14 +18,13 @@ export default function AufgabenPage() {
   const [tempRating, setTempRating] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = getCurrentUser();
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
       if (userData) setUser(userData);
       setLoading(false);
-    };
-    checkAuth();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   const toggleSubtask = async (taskId: number, subtaskIndex: number) => {
@@ -136,13 +135,6 @@ export default function AufgabenPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                        task.type === 'group'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {task.type === 'group' ? '👥 Gruppenaufgabe' : '🧑 Einzelaufgabe'}
-                      </span>
                       <span className="text-sm text-gray-500">
                         {taskSubtasksDone} / {task.subtasks.length} abgehakt
                       </span>

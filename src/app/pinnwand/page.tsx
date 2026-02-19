@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData } from '@/lib/auth';
 import { createComment, getAllComments, deleteComment } from '@/lib/firestore';
 import { User, Comment } from '@/types';
 import Navigation from '@/components/Navigation';
@@ -18,8 +18,7 @@ export default function PinnwandPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      const currentUser = getCurrentUser();
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const [userData, commentsData] = await Promise.all([
         getUserData(currentUser.uid),
@@ -28,8 +27,8 @@ export default function PinnwandPage() {
       if (userData) setUser(userData);
       setComments(commentsData);
       setLoading(false);
-    };
-    loadData();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
