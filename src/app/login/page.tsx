@@ -162,8 +162,10 @@ function LoginContent() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
                   maxLength={30}
                   required
+                  autoComplete="off"
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
                   placeholder="Max Mustermann"
                 />
