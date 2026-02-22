@@ -2,196 +2,364 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { onAuthChange, getUserData } from '@/lib/auth';
+import { updateUserSubtasks } from '@/lib/firestore';
 import { User } from '@/types';
 import Navigation from '@/components/Navigation';
-import { GraduationCap, Shield, Zap, Users, BookOpen, Smartphone, ExternalLink, Play, ChevronRight } from 'lucide-react';
+import { GraduationCap, Shield, Wrench, Users, CheckCircle, Circle, ChevronDown, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
 export default function WasIstFobizzPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const [quizResults, setQuizResults] = useState<Record<string, boolean | null>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
-      if (userData) setUser(userData);
+      if (userData) {
+        setUser(userData);
+        const existing: Record<string, boolean> = {};
+        for (const key of confirmItems.map(q => q.key)) {
+          if (userData.completedSubtasks?.[key]) existing[key] = true;
+        }
+        setChecked(existing);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);
+
+  const handleCheck = async (key: string) => {
+    if (!user) return;
+    const newChecked = { ...checked, [key]: !checked[key] };
+    setChecked(newChecked);
+    setSaving(true);
+    try {
+      const updated = { ...(user.completedSubtasks || {}) };
+      if (newChecked[key]) {
+        updated[key] = new Date().toISOString();
+      } else {
+        delete updated[key];
+      }
+      await updateUserSubtasks(user.userId, updated);
+      setUser({ ...user, completedSubtasks: updated });
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const handleQuizAnswer = (qKey: string, answer: string, correct: string) => {
+    setQuizAnswers({ ...quizAnswers, [qKey]: answer });
+    setQuizResults({ ...quizResults, [qKey]: answer === correct });
+  };
+
+  const allChecked = confirmItems.every(q => checked[q.key]);
+  const checkedCount = confirmItems.filter(q => checked[q.key]).length;
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt...</div></div>;
   if (!user) return null;
 
   return (
     <div className="min-h-screen p-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center">
-              <GraduationCap className="w-8 h-8 text-white" />
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-primary-600 rounded-xl flex items-center justify-center">
+                <GraduationCap className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-primary-600 uppercase tracking-wider mb-1">Seite 1</div>
+                <h1 className="text-2xl font-bold">Was ist Fobizz?</h1>
+              </div>
             </div>
-            <div>
-              <div className="text-xs font-bold text-primary-600 uppercase tracking-wider mb-1">Seite 1</div>
-              <h1 className="text-2xl font-bold">Was ist Fobizz?</h1>
-              <p className="text-gray-600">Die KI-Plattform für Lehrpersonen – ein Überblick</p>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-500">{checkedCount}/{confirmItems.length} bestätigt</div>
+              {allChecked && (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-semibold text-sm">
+                  <CheckCircle className="w-5 h-5" />
+                  Abgeschlossen!
+                </motion.div>
+              )}
             </div>
           </div>
         </motion.div>
 
         <Navigation />
 
-        {/* Intro */}
+        {/* ACCORDION: Kerninfos aufdecken */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="glass-card rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-4 gradient-text">Die Plattform im Überblick</h2>
-          <p className="text-gray-700 leading-relaxed mb-4">
-            <strong>Fobizz</strong> ist eine digitale Lernplattform, die speziell für den Bildungsbereich entwickelt wurde.
-            Sie bietet Lehrpersonen Zugang zu KI-gestützten Werkzeugen, einem Materialienpool und Kollaborationsfunktionen –
-            und das alles vollständig <strong>datenschutzkonform nach DSGVO</strong>.
-          </p>
-          <p className="text-gray-700 leading-relaxed">
-            Im Gegensatz zu allgemeinen KI-Diensten wie ChatGPT ist Fobizz auf die Bedürfnisse von Schulen ausgerichtet:
-            Keine Weitergabe von Schülerdaten, keine Werbung, kein Training der KI mit euren Inhalten.
-          </p>
+          <h2 className="text-xl font-bold mb-2">📖 Was musst du wissen?</h2>
+          <p className="text-gray-500 text-sm mb-5">Klicke auf einen Bereich um ihn aufzuklappen.</p>
+          <div className="space-y-3">
+            {accordionItems.map((item) => (
+              <div key={item.id} className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenAccordion(openAccordion === item.id ? null : item.id)}
+                  className="w-full flex items-center justify-between p-4 bg-white/60 hover:bg-primary-50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{item.emoji}</span>
+                    <span className="font-semibold text-gray-800">{item.title}</span>
+                  </div>
+                  <motion.div animate={{ rotate: openAccordion === item.id ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {openAccordion === item.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-5 border-t border-gray-100 bg-white/40 text-gray-700 text-sm leading-relaxed space-y-2">
+                        {item.content}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
-        {/* Kernfunktionen */}
+        {/* REVEAL CARDS: Begriffe aufdecken */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className="glass-card rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-6">Kernfunktionen von Fobizz</h2>
-          <div className="grid md:grid-cols-2 gap-5">
-            {features.map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.08 }}
-                className="bg-white/60 rounded-xl p-5 border border-white/40 flex gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${f.bg}`}>
-                  <f.icon className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-800 mb-1">{f.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{f.description}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Werkzeuge im Detail */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="glass-card rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-6">Fobizz-Werkzeuge im Detail</h2>
-          <div className="space-y-4">
-            {tools.map((tool, i) => (
-              <div key={i} className="bg-white/60 rounded-xl p-5 border border-white/40">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{tool.emoji}</span>
-                    <h3 className="font-bold text-gray-800">{tool.name}</h3>
-                  </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${tool.tagBg} ${tool.tagText}`}>
-                    {tool.tag}
-                  </span>
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed ml-9">{tool.description}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Lizenzmodell */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="glass-card rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Zugang & Lizenzmodell</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {licenseTypes.map((lic, i) => (
-              <div key={i} className={`rounded-xl p-5 border-2 ${lic.border} ${lic.bg}`}>
-                <div className="text-2xl mb-2">{lic.emoji}</div>
-                <h3 className={`font-bold mb-2 ${lic.titleColor}`}>{lic.title}</h3>
-                <ul className="space-y-1">
-                  {lic.features.map((f, j) => (
-                    <li key={j} className="text-sm text-gray-700 flex items-start gap-2">
-                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-xl">
-            <p className="text-primary-800 text-sm">
-              <strong>Für diese Weiterbildung:</strong> Du hast Zugang zu einem Fobizz-Pro-Account über die Schullizenz.
-              Die Registrierung erfolgt in Aufgabe 1 auf der Aufgaben-Seite.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Weiterführende Links */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-          className="glass-card rounded-2xl p-8">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <ExternalLink className="w-5 h-5 text-primary-600" />
-            Weiterführende Ressourcen
-          </h2>
+          <h2 className="text-xl font-bold mb-2">🃏 Begriffe aufdecken</h2>
+          <p className="text-gray-500 text-sm mb-5">Überlege kurz – dann klicke um die Erklärung zu sehen.</p>
           <div className="grid md:grid-cols-2 gap-4">
-            {links.map((link, i) => (
-              <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-3 p-4 bg-white/60 rounded-xl border border-white/40 hover:border-primary-300 hover:bg-primary-50 transition-all group">
-                <span className="text-2xl">{link.emoji}</span>
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-800 group-hover:text-primary-700">{link.title}</div>
-                  <div className="text-xs text-gray-500">{link.subtitle}</div>
+            {revealCards.map((card) => (
+              <div key={card.id}
+                onClick={() => setRevealed({ ...revealed, [card.id]: !revealed[card.id] })}
+                className="cursor-pointer rounded-xl border-2 border-dashed border-primary-200 overflow-hidden">
+                <div className="p-4 bg-primary-50 flex items-center justify-between">
+                  <span className="font-bold text-primary-700">{card.term}</span>
+                  {revealed[card.id]
+                    ? <EyeOff className="w-4 h-4 text-primary-400" />
+                    : <Eye className="w-4 h-4 text-primary-400" />
+                  }
                 </div>
-                <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-primary-600" />
-              </a>
+                <AnimatePresence>
+                  {revealed[card.id] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 bg-white text-gray-700 text-sm leading-relaxed border-t border-primary-100">
+                        {card.explanation}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ))}
           </div>
         </motion.div>
+
+        {/* QUIZ: Multiple Choice */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          className="glass-card rounded-2xl p-8 mb-6">
+          <h2 className="text-xl font-bold mb-2">🧠 Kleiner Wissens-Check</h2>
+          <p className="text-gray-500 text-sm mb-5">Wähle die richtige Antwort.</p>
+          <div className="space-y-6">
+            {quizQuestions.map((q) => (
+              <div key={q.key} className="bg-white/60 rounded-xl p-5 border border-gray-100">
+                <p className="font-semibold text-gray-800 mb-3">{q.question}</p>
+                <div className="space-y-2">
+                  {q.options.map((opt) => {
+                    const selected = quizAnswers[q.key] === opt;
+                    const answered = quizAnswers[q.key] !== undefined;
+                    const isCorrect = opt === q.correct;
+                    let style = 'border-gray-200 bg-white/60';
+                    if (answered && selected && isCorrect) style = 'border-green-400 bg-green-50';
+                    else if (answered && selected && !isCorrect) style = 'border-red-400 bg-red-50';
+                    else if (answered && isCorrect) style = 'border-green-300 bg-green-50';
+                    return (
+                      <button key={opt}
+                        onClick={() => !answered && handleQuizAnswer(q.key, opt, q.correct)}
+                        disabled={answered}
+                        className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm transition-all ${style} ${!answered ? 'hover:border-primary-300 hover:bg-primary-50 cursor-pointer' : 'cursor-default'}`}
+                      >
+                        {opt}
+                        {answered && isCorrect && <span className="ml-2 text-green-600 font-bold">✓</span>}
+                        {answered && selected && !isCorrect && <span className="ml-2 text-red-600 font-bold">✗</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {quizResults[q.key] === false && (
+                  <p className="mt-2 text-sm text-red-600">Nicht ganz – die richtige Antwort ist grün markiert.</p>
+                )}
+                {quizResults[q.key] === true && (
+                  <p className="mt-2 text-sm text-green-600 font-medium">Richtig! 🎉</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Fobizz-Link */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="glass-card rounded-2xl p-6 mb-6 flex items-center gap-4">
+          <Wrench className="w-8 h-8 text-primary-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-gray-800">Start mit Fobizz</p>
+            <p className="text-gray-600 text-sm">Du hast dich registriert – kontrolliere ob der Zugriff funktioniert.</p>
+          </div>
+          <a href="https://fobizz.com" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-primary-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex-shrink-0">
+            <ExternalLink className="w-4 h-4" />
+            fobizz.com
+          </a>
+        </motion.div>
+
+        {/* Bestätigung */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="glass-card rounded-2xl p-8">
+          <h2 className="text-xl font-bold mb-5">✅ Ich bestätige...</h2>
+          <div className="space-y-3">
+            {confirmItems.map((item, i) => (
+              <motion.button
+                key={item.key}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + i * 0.07 }}
+                onClick={() => handleCheck(item.key)}
+                disabled={saving}
+                className={`w-full text-left flex items-start gap-4 p-4 rounded-xl border-2 transition-all duration-200 ${
+                  checked[item.key]
+                    ? 'border-green-400 bg-green-50'
+                    : 'border-gray-200 bg-white/60 hover:border-primary-300 hover:bg-primary-50'
+                }`}
+              >
+                {checked[item.key]
+                  ? <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                  : <Circle className="w-6 h-6 text-gray-400 flex-shrink-0 mt-0.5" />
+                }
+                <span className={`text-sm leading-relaxed ${checked[item.key] ? 'text-green-800 font-medium' : 'text-gray-700'}`}>
+                  {item.label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+          {allChecked && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-4 bg-green-100 border border-green-300 rounded-xl text-center">
+              <p className="text-green-800 font-semibold">🎉 Super! Diese Seite ist abgeschlossen.</p>
+              <p className="text-green-700 text-sm mt-1">Dein Fortschritt wird im Dashboard angezeigt.</p>
+            </motion.div>
+          )}
+        </motion.div>
+
       </div>
     </div>
   );
 }
 
-const features = [
-  { icon: Zap, bg: 'bg-gradient-to-br from-amber-500 to-orange-500', title: 'KI-Assistent', description: 'Erstelle Unterrichtsmaterialien, Erklärungen und Aufgaben mit KI-Unterstützung – in Sekunden.' },
-  { icon: Shield, bg: 'bg-gradient-to-br from-green-500 to-emerald-600', title: 'DSGVO-konform', description: 'Alle Daten bleiben in der EU. Keine Weitergabe an Dritte, kein KI-Training mit euren Inhalten.' },
-  { icon: BookOpen, bg: 'bg-gradient-to-br from-blue-500 to-primary-600', title: 'Materialienpool', description: 'Tausende fertige Unterrichtsmaterialien von Lehrpersonen für Lehrpersonen – direkt einsetzbar.' },
-  { icon: Users, bg: 'bg-gradient-to-br from-violet-500 to-purple-600', title: 'Kollaboration', description: 'Teile Materialien mit dem Kollegium, erstelle gemeinsame Kurse und profitiere von Peer-Learning.' },
-  { icon: Smartphone, bg: 'bg-gradient-to-br from-pink-500 to-rose-500', title: 'Überall verfügbar', description: 'Browserbasiert, kein Download nötig. Funktioniert auf PC, Tablet und Smartphone.' },
-  { icon: Play, bg: 'bg-gradient-to-br from-teal-500 to-cyan-600', title: 'Interaktive Aufgaben', description: 'Quizze, Lückentexte, Mindmaps, WhatsApp-Dialoge – vielfältige interaktive Formate.' },
-];
-
-const tools = [
-  { emoji: '🤖', name: 'KI-Chat (Fobizz-KI)', tag: 'KI', tagBg: 'bg-amber-100', tagText: 'text-amber-700', description: 'Ein datenschutzkonformer KI-Assistent, vergleichbar mit ChatGPT, aber speziell für Schulen. Erstelle Erklärungen, Aufgaben, Lösungsblätter oder lass dir Ideen vorschlagen.' },
-  { emoji: '📝', name: 'Aufgaben-Generator', tag: 'Material', tagBg: 'bg-blue-100', tagText: 'text-blue-700', description: 'Erstelle automatisch differenzierte Aufgaben auf verschiedenen Niveaustufen zu jedem Thema – mit einem Klick.' },
-  { emoji: '🎨', name: 'Bild-KI', tag: 'KI', tagBg: 'bg-amber-100', tagText: 'text-amber-700', description: 'Generiere Illustrationen, Diagramme und Bilder für den Unterricht – ohne Copyright-Probleme.' },
-  { emoji: '📊', name: 'Infografik-Tool', tag: 'Material', tagBg: 'bg-blue-100', tagText: 'text-blue-700', description: 'Erstelle ansprechende Infografiken und Lernplakate direkt in der Plattform.' },
-  { emoji: '❓', name: 'Quiz-Builder', tag: 'Interaktiv', tagBg: 'bg-green-100', tagText: 'text-green-700', description: 'Baue interaktive Quizze und Lernkontrollen, die Schülerinnen und Schüler direkt im Browser lösen können.' },
-  { emoji: '🗺️', name: 'Mindmap', tag: 'Interaktiv', tagBg: 'bg-green-100', tagText: 'text-green-700', description: 'Erstelle kollaborative Mindmaps für Brainstorming, Zusammenfassungen oder Wissenslandkarten.' },
-];
-
-const licenseTypes = [
+const accordionItems = [
   {
-    emoji: '🆓', title: 'Kostenlos', border: 'border-gray-200', bg: 'bg-gray-50', titleColor: 'text-gray-700',
-    features: ['Basis-KI-Funktionen', 'Begrenzte Materialmenge', 'Einzelnutzung', 'Für erste Schritte geeignet']
+    id: 'acc1', emoji: '🤖', title: 'Was ist Fobizz genau?',
+    content: (
+      <>
+        <p>Fobizz ist ein <strong>Lernort für Weiterbildungen</strong> sowie eine Plattform für <strong>KI-Werkzeuge</strong> und <strong>Autor/innen-Werkzeuge</strong>.</p>
+        <p>Fobizz ist <em>kein</em> Unterrichtsmaterialgenerator wie to-teach.ai, sondern eine digitale Autor/innen-Werkzeug-Oberfläche und ein KI-Werkzeugtool.</p>
+        <p>Eine Hauptfunktion ist der <strong>KI-Assistent</strong>, den Lehrpersonen für eigene Zwecke nutzen können – der aber auch Lernenden zur Verfügung gestellt werden kann.</p>
+      </>
+    )
   },
   {
-    emoji: '⭐', title: 'Pro (Einzellizenz)', border: 'border-primary-300', bg: 'bg-primary-50', titleColor: 'text-primary-700',
-    features: ['Alle KI-Werkzeuge', 'Unbegrenzte Materialien', 'Erweiterte Funktionen', 'CHF ~10/Monat']
+    id: 'acc2', emoji: '🔐', title: 'Datenschutz & Lernräume',
+    content: (
+      <>
+        <p>Lernende haben <strong>nur mit Codes Zugriff</strong>, die durch die Erzeugung von Lernräumen erstellt werden – das macht Fobizz datenschutzkonform.</p>
+        <p><strong>Ausnahme:</strong> Bei einem 24h-Lernraum-Link ist Zugriff auch ohne Login möglich. Lernräume bestehen maximal 12 Monate, danach werden sie automatisch gelöscht.</p>
+        <p>Lernende können in Lernräumen auch zu <strong>Autor/innen werden</strong> – besonders wertvoll für handlungskompetenzorientierten Unterricht.</p>
+      </>
+    )
   },
   {
-    emoji: '🏫', title: 'Schullizenz', border: 'border-accent-300', bg: 'bg-accent-50', titleColor: 'text-accent-700',
-    features: ['Für ganzes Kollegium', 'Admin-Verwaltung', 'Günstigster Preis/Person', 'Empfohlen für Schulen']
+    id: 'acc3', emoji: '🏫', title: 'Lizenz Kanton Zürich',
+    content: (
+      <>
+        <p><strong>2026:</strong> Der Kanton Zürich hat eine Gesamtlizenz für alle SekII-Schulen gelöst.</p>
+        <p><strong>2027:</strong> Jede Schule muss für sich selbst die Fortführung der Lizenz organisieren.</p>
+      </>
+    )
+  },
+  {
+    id: 'acc4', emoji: '👩‍💻', title: 'Lernende als Autor/innen',
+    content: (
+      <>
+        <p>Mit Lernräumen können Lehrpersonen den Lernenden nicht nur Werkzeuge zur Verfügung stellen, sondern Lernende können dort selbst zu <strong>Autor/innen</strong> werden.</p>
+        <p>Die von den Lernenden erzeugten Lerninhalte und Lernwege können durch die Lehrperson mit einem individuellen Zugang angeschaut werden.</p>
+      </>
+    )
   },
 ];
 
-const links = [
-  { emoji: '🌐', title: 'Fobizz Webseite', subtitle: 'fobizz.com – Offizieller Auftritt', url: 'https://fobizz.com' },
-  { emoji: '📖', title: 'Fobizz Hilfe-Center', subtitle: 'Anleitungen & Tutorials', url: 'https://fobizz.com/hilfe' },
-  { emoji: '▶️', title: 'Einführungsvideo', subtitle: 'Fobizz in 5 Minuten erklärt', url: 'https://fobizz.com' },
-  { emoji: '📚', title: 'Materialienpool', subtitle: 'Fertige Unterrichtsmaterialien', url: 'https://fobizz.com' },
+const revealCards = [
+  { id: 'r1', term: 'Lernraum', explanation: 'Ein geschützter Bereich auf Fobizz, zu dem Lernende nur mit einem Code Zugang haben. Lehrpersonen erstellen Lernräume und verteilen die Codes separat.' },
+  { id: 'r2', term: '24h-Lernraum-Link', explanation: 'Eine Ausnahme: Über diesen Link ist Zugriff 24 Stunden lang auch ohne Login möglich – praktisch für einmalige Einsätze.' },
+  { id: 'r3', term: 'KI-Assistent', explanation: 'Die Hauptfunktion von Fobizz: Ein datenschutzkonformer KI-Assistent für Lehrpersonen – kann aber auch in Lernräumen für Lernende aktiviert werden.' },
+  { id: 'r4', term: 'Autor/innen-Werkzeug', explanation: 'Fobizz ist keine reine Materialplattform – Lehrpersonen und sogar Lernende können selbst Inhalte und Lernwege erstellen.' },
+];
+
+const quizQuestions = [
+  {
+    key: 'q1',
+    question: 'Was ist der Hauptunterschied zwischen Fobizz und to-teach.ai?',
+    options: [
+      'Fobizz ist kostenlos, to-teach.ai nicht.',
+      'Fobizz ist ein KI-Werkzeug und Autor/innen-Tool, to-teach.ai ein Unterrichtsmaterialgenerator.',
+      'to-teach.ai ist datenschutzkonformer als Fobizz.',
+      'Fobizz funktioniert nur auf dem iPad.',
+    ],
+    correct: 'Fobizz ist ein KI-Werkzeug und Autor/innen-Tool, to-teach.ai ein Unterrichtsmaterialgenerator.',
+  },
+  {
+    key: 'q2',
+    question: 'Wie erhalten Lernende Zugang zu einem Fobizz-Lernraum?',
+    options: [
+      'Sie registrieren sich selbst mit ihrer Schul-Email.',
+      'Die Lehrperson gibt ihnen einen Code, der beim Erstellen des Lernraums generiert wird.',
+      'Sie brauchen gar keinen Zugang – alles ist öffentlich.',
+      'Nur über den 24h-Link.',
+    ],
+    correct: 'Die Lehrperson gibt ihnen einen Code, der beim Erstellen des Lernraums generiert wird.',
+  },
+  {
+    key: 'q3',
+    question: 'Was passiert 2027 mit der Fobizz-Lizenz?',
+    options: [
+      'Der Kanton Zürich verlängert automatisch.',
+      'Fobizz wird kostenlos für alle.',
+      'Jede Schule muss für sich selbst die Fortführung der Lizenz organisieren.',
+      'Fobizz wird eingestellt.',
+    ],
+    correct: 'Jede Schule muss für sich selbst die Fortführung der Lizenz organisieren.',
+  },
+];
+
+const confirmItems = [
+  { key: 'fobizz-q1', label: 'Ich weiss, dass Fobizz kein Unterrichtsmaterialgenerator ist, sondern ein KI-Werkzeug und eine Autor/innen-Oberfläche.' },
+  { key: 'fobizz-q2', label: 'Ich verstehe, wie Lernräume funktionieren und dass Lernende Codes erhalten, um Zugang zu erhalten.' },
+  { key: 'fobizz-q3', label: 'Ich weiss, dass für 2026 eine Gesamtlizenz des Kantons Zürich besteht und 2027 jede Schule selbst entscheiden muss.' },
+  { key: 'fobizz-q4', label: 'Ich habe geprüft, ob mein Fobizz-Zugang funktioniert.' },
 ];
