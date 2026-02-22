@@ -9,6 +9,17 @@ import Navigation from '@/components/Navigation';
 import { Award, Printer, CheckCircle, Circle, Edit3 } from 'lucide-react';
 import { TASKS } from '@/lib/constants';
 
+// Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
+function countTaskKeys(completedSubtasks: Record<string, string> | undefined): number {
+  return Object.keys(completedSubtasks || {}).filter(k => /^\d+-\d+$/.test(k)).length;
+}
+
+const SECTION_CONFIRM_KEYS = [
+  'fobizz-q1', 'fobizz-q2', 'fobizz-q3', 'fobizz-q4',
+  'paed-q1', 'paed-q2', 'paed-q3', 'paed-q4',
+  'bsp-q1', 'bsp-q2', 'bsp-q3',
+];
+
 const PAGE_SECTIONS = [
   {
     key: 'was-ist-fobizz',
@@ -70,12 +81,12 @@ export default function ZertifikatPage() {
     return { task, done, total, completed: done === total };
   });
 
-  // Gesamtfortschritt: gleiche Berechnung wie Dashboard (completedSubtasks / totalSubtasks)
+  // Gesamtfortschritt: gleiche Berechnung wie Dashboard
   const totalSubtasks = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
-  const completedSubtasksCount = Object.keys(user.completedSubtasks || {})
-    .filter(k => /^\d+-\d+$/.test(k)) // nur Aufgaben-Keys (z.B. "1-0", "2-3")
-    .length;
-  const overallPct = totalSubtasks > 0 ? Math.round((completedSubtasksCount / totalSubtasks) * 100) : 0;
+  const totalAll = totalSubtasks + SECTION_CONFIRM_KEYS.length;
+  const completedSubtasksCount = countTaskKeys(user.completedSubtasks);
+  const completedSectionCount = SECTION_CONFIRM_KEYS.filter(k => user.completedSubtasks?.[k]).length;
+  const overallPct = totalAll > 0 ? Math.round(((completedSubtasksCount + completedSectionCount) / totalAll) * 100) : 0;
 
   // Für Anzeige im Footer
   const totalSectionsAndTasks = sectionResults.length + taskResults.length;
@@ -172,7 +183,7 @@ export default function ZertifikatPage() {
                       className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full"
                     />
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-1">{completedSubtasksCount} von {totalSubtasks} Aufgaben erledigt</div>
+                  <div className="text-[10px] text-gray-400 mt-1">{completedSubtasksCount + completedSectionCount} von {totalAll} Einheiten erledigt</div>
                 </div>
               </div>
 
