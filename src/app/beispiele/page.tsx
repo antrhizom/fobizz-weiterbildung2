@@ -30,16 +30,45 @@ export default function BeispielePage() {
       const userData = await getUserData(currentUser.uid);
       if (userData) {
         setUser(userData);
+        const subs = userData.completedSubtasks || {};
+
+        // Bestätigungs-Checkboxen
         const existing: Record<string, boolean> = {};
         for (const key of confirmItems.map(q => q.key)) {
-          if (userData.completedSubtasks?.[key]) existing[key] = true;
+          if (subs[key]) existing[key] = true;
         }
         setChecked(existing);
+
+        // Aktivitäten wiederherstellen (80%-Gate)
+        const restoredExamples = new Set<string>();
+        examples.forEach(ex => {
+          if (subs[`bsp-ex-${ex.id}`]) restoredExamples.add(ex.id);
+        });
+        setOpenedExamples(restoredExamples);
+
+        const restoredQuiz: Record<string, string> = {};
+        const restoredResults: Record<string, boolean | null> = {};
+        quizQuestions.forEach(q => {
+          const savedAnswer = subs[`bsp-quiz-${q.key}`];
+          if (savedAnswer) {
+            restoredQuiz[q.key] = savedAnswer;
+            restoredResults[q.key] = savedAnswer === q.correct;
+          }
+        });
+        setQuizAnswers(restoredQuiz);
+        setQuizResults(restoredResults);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);
+
+  const persistActivity = async (key: string, value: string) => {
+    if (!user) return;
+    const updated = { ...(user.completedSubtasks || {}), [key]: value };
+    await updateUserSubtasks(user.userId, updated);
+    setUser({ ...user, completedSubtasks: updated });
+  };
 
   const handleCheck = async (key: string) => {
     if (!user) return;
@@ -59,15 +88,19 @@ export default function BeispielePage() {
     setSaving(false);
   };
 
-  const handleQuizAnswer = (qKey: string, answer: string, correct: string) => {
+  const handleQuizAnswer = async (qKey: string, answer: string, correct: string) => {
     if (quizAnswers[qKey] !== undefined) return;
     setQuizAnswers({ ...quizAnswers, [qKey]: answer });
     setQuizResults({ ...quizResults, [qKey]: answer === correct });
+    await persistActivity(`bsp-quiz-${qKey}`, answer);
   };
 
-  const handleExampleToggle = (id: string) => {
+  const handleExampleToggle = async (id: string) => {
     setOpenExample(openExample === id ? null : id);
-    setOpenedExamples(prev => new Set(prev).add(id));
+    if (!openedExamples.has(id)) {
+      setOpenedExamples(prev => new Set(prev).add(id));
+      await persistActivity(`bsp-ex-${id}`, 'opened');
+    }
   };
 
   const completedActions =

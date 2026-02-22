@@ -31,11 +31,39 @@ export default function WasIstFobizzPage() {
       const userData = await getUserData(currentUser.uid);
       if (userData) {
         setUser(userData);
+        const subs = userData.completedSubtasks || {};
+
+        // Bestätigungs-Checkboxen
         const existing: Record<string, boolean> = {};
         for (const key of confirmItems.map(q => q.key)) {
-          if (userData.completedSubtasks?.[key]) existing[key] = true;
+          if (subs[key]) existing[key] = true;
         }
         setChecked(existing);
+
+        // Aktivitäten wiederherstellen (80%-Gate)
+        const restoredAccordions = new Set<string>();
+        accordionItems.forEach(item => {
+          if (subs[`wif-acc-${item.id}`]) restoredAccordions.add(item.id);
+        });
+        setOpenedAccordions(restoredAccordions);
+
+        const restoredRevealed: Record<string, boolean> = {};
+        revealCards.forEach(card => {
+          if (subs[`wif-rev-${card.id}`]) restoredRevealed[card.id] = true;
+        });
+        setRevealed(restoredRevealed);
+
+        const restoredQuiz: Record<string, string> = {};
+        const restoredResults: Record<string, boolean | null> = {};
+        quizQuestions.forEach(q => {
+          const savedAnswer = subs[`wif-quiz-${q.key}`];
+          if (savedAnswer) {
+            restoredQuiz[q.key] = savedAnswer;
+            restoredResults[q.key] = savedAnswer === q.correct;
+          }
+        });
+        setQuizAnswers(restoredQuiz);
+        setQuizResults(restoredResults);
       }
       setLoading(false);
     });
@@ -60,14 +88,33 @@ export default function WasIstFobizzPage() {
     setSaving(false);
   };
 
-  const handleQuizAnswer = (qKey: string, answer: string, correct: string) => {
-    setQuizAnswers({ ...quizAnswers, [qKey]: answer });
-    setQuizResults({ ...quizResults, [qKey]: answer === correct });
+  const persistActivity = async (key: string, value: string) => {
+    if (!user) return;
+    const updated = { ...(user.completedSubtasks || {}), [key]: value };
+    await updateUserSubtasks(user.userId, updated);
+    setUser({ ...user, completedSubtasks: updated });
   };
 
-  const handleAccordionToggle = (id: string) => {
+  const handleQuizAnswer = async (qKey: string, answer: string, correct: string) => {
+    setQuizAnswers({ ...quizAnswers, [qKey]: answer });
+    setQuizResults({ ...quizResults, [qKey]: answer === correct });
+    await persistActivity(`wif-quiz-${qKey}`, answer);
+  };
+
+  const handleAccordionToggle = async (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id);
-    setOpenedAccordions(prev => new Set(prev).add(id));
+    if (!openedAccordions.has(id)) {
+      setOpenedAccordions(prev => new Set(prev).add(id));
+      await persistActivity(`wif-acc-${id}`, 'opened');
+    }
+  };
+
+  const handleReveal = async (cardId: string) => {
+    const newRevealed = { ...revealed, [cardId]: !revealed[cardId] };
+    setRevealed(newRevealed);
+    if (!revealed[cardId]) {
+      await persistActivity(`wif-rev-${cardId}`, 'revealed');
+    }
   };
 
   // Fortschritt der Interaktionen berechnen
@@ -163,7 +210,7 @@ export default function WasIstFobizzPage() {
           <div className="grid md:grid-cols-2 gap-4">
             {revealCards.map((card) => (
               <div key={card.id}
-                onClick={() => setRevealed({ ...revealed, [card.id]: !revealed[card.id] })}
+                onClick={() => handleReveal(card.id)}
                 className="cursor-pointer rounded-xl border-2 border-dashed border-primary-200 overflow-hidden">
                 <div className="p-4 bg-primary-50 flex items-center justify-between">
                   <span className="font-bold text-primary-700">{card.term}</span>

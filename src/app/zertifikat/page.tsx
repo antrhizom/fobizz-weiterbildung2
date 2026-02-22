@@ -70,9 +70,16 @@ export default function ZertifikatPage() {
     return { task, done, total, completed: done === total };
   });
 
-  const totalItems = sectionResults.length + taskResults.length;
-  const completedItems = sectionResults.filter(r => r.completed).length + taskResults.filter(r => r.completed).length;
-  const overallPct = Math.round((completedItems / totalItems) * 100);
+  // Gesamtfortschritt: gleiche Berechnung wie Dashboard (completedSubtasks / totalSubtasks)
+  const totalSubtasks = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
+  const completedSubtasksCount = Object.keys(user.completedSubtasks || {})
+    .filter(k => /^\d+-\d+$/.test(k)) // nur Aufgaben-Keys (z.B. "1-0", "2-3")
+    .length;
+  const overallPct = totalSubtasks > 0 ? Math.round((completedSubtasksCount / totalSubtasks) * 100) : 0;
+
+  // Für Anzeige im Footer
+  const totalSectionsAndTasks = sectionResults.length + taskResults.length;
+  const completedSectionsAndTasks = sectionResults.filter(r => r.completed).length + taskResults.filter(r => r.completed).length;
 
   const today = new Date().toLocaleDateString('de-CH', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -165,7 +172,7 @@ export default function ZertifikatPage() {
                       className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full"
                     />
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-1">{completedItems} von {totalItems} Bereichen vollständig</div>
+                  <div className="text-[10px] text-gray-400 mt-1">{completedSubtasksCount} von {totalSubtasks} Aufgaben erledigt</div>
                 </div>
               </div>
 
@@ -232,7 +239,7 @@ export default function ZertifikatPage() {
                   <p className="font-bold text-green-700 text-sm">🎉 Vollständig abgeschlossen – alle Bereiche bearbeitet!</p>
                 ) : (
                   <p className="text-gray-500 text-xs">
-                    Lernnachweis vom <strong>{today}</strong> · noch offen: {totalItems - completedItems} Bereiche
+                    Lernnachweis vom <strong>{today}</strong> · noch offen: {totalSectionsAndTasks - completedSectionsAndTasks} Bereiche
                   </p>
                 )}
                 <div className="mt-1 text-[10px] text-gray-400">
