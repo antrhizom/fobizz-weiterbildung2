@@ -23,8 +23,10 @@ export interface Task {
   iconEmoji: string;
   subtasks: string[];
   pdfId?: string;
+  pdfUrl?: string;
   whiteboardUrl?: string;
   padletUrl?: string;
+  oneDriveUrl?: string;
 }
 
 export interface Comment {

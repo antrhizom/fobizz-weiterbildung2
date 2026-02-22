@@ -168,13 +168,21 @@ export default function AufgabenPage() {
                 </div>
 
                 {/* Externe Links */}
-                {(task.whiteboardUrl || task.padletUrl || task.pdfId) && (
+                {(task.whiteboardUrl || task.padletUrl || task.pdfUrl || task.oneDriveUrl) && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-wrap">
-                    {task.pdfId && (
-                      <span className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold">
+                    {task.pdfUrl && (
+                      <a href={task.pdfUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-semibold">
                         <ExternalLink className="w-4 h-4" />
-                        PDF-Anleitung (wird vom Admin hochgeladen)
-                      </span>
+                        📄 PDF-Anleitung öffnen
+                      </a>
+                    )}
+                    {task.oneDriveUrl && (
+                      <a href={task.oneDriveUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-semibold">
+                        <ExternalLink className="w-4 h-4" />
+                        ☁️ OneDrive-Ordner öffnen
+                      </a>
                     )}
                     {task.whiteboardUrl && (
                       <a href={task.whiteboardUrl} target="_blank" rel="noopener noreferrer"
