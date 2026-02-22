@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, logout, checkIsAdmin } from '@/lib/auth';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Info, BookOpen, Lightbulb, CheckSquare, MessageSquare, Shield, LogOut } from 'lucide-react';
+import { LayoutDashboard, Info, BookOpen, Lightbulb, CheckSquare, MessageSquare, Shield, LogOut, Award } from 'lucide-react';
 
 export default function Navigation() {
   const router = useRouter();
@@ -35,6 +35,7 @@ export default function Navigation() {
     { href: '/beispiele', icon: Lightbulb, label: 'Beispiele' },
     { href: '/aufgaben', icon: CheckSquare, label: 'Aufgaben' },
     { href: '/pinnwand', icon: MessageSquare, label: 'Pinnwand' },
+    { href: '/zertifikat', icon: Award, label: 'Zertifikat' },
   ];
 
   return (

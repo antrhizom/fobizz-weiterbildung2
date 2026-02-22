@@ -8,7 +8,7 @@ import { getAllUsers } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, Users, TrendingUp, MessageSquare } from 'lucide-react';
+import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, Users, TrendingUp, MessageSquare, Award } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -226,25 +226,38 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Pinnwand Quick-Link */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <Link href="/pinnwand">
-            <div className="glass-card rounded-2xl p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-6 h-6 text-white" />
+        {/* Quick-Links: Pinnwand + Zertifikat */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            <Link href="/pinnwand">
+              <div className="glass-card rounded-2xl p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-800">Zur Pinnwand</h3>
+                  <p className="text-gray-600 text-sm">Teile deine Erfahrungen und Fragen</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-800">Zur Pinnwand</h3>
-                <p className="text-gray-600 text-sm">Teile deine Erfahrungen und Fragen mit anderen Teilnehmenden</p>
+            </Link>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+            <Link href="/zertifikat">
+              <div className="glass-card rounded-2xl p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer h-full">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-800">Lernzertifikat</h3>
+                  <p className="text-gray-600 text-sm">Zeigt deinen aktuellen Stand – jetzt: <strong>{progress}%</strong></p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
               </div>
-              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
-            </div>
-          </Link>
-        </motion.div>
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
