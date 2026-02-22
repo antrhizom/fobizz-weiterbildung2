@@ -351,17 +351,95 @@ const accordionItems = [
     )
   },
   {
-    id: 'acc3', emoji: '🎯', title: 'Wo kommt Fobizz zum Zug?',
+    id: 'acc3', emoji: '🎯', title: 'Wo kommt Fobizz zum Zug? – Beispiele mit ABU-Bezug',
     content: (
-      <>
-        <p>Fobizz kann in der <strong>Unterrichtsvorbereitung</strong> genutzt werden, um Lernräume zu organisieren und Zugänge zu schaffen:</p>
-        <ul className="list-disc list-inside space-y-1 mt-2">
-          <li>Per QR-Code oder verkürztem Link auf Lerninhalte verweisen</li>
-          <li>Vorwissen mit <strong>Umfragen erfassen</strong></li>
-          <li>Eine <strong>Pinnwand für Reflexionen</strong> erstellen</li>
-        </ul>
-        <p className="mt-3">Die <strong>KI-Funktionen</strong> ermöglichen, dass Lehrpersonen den Lernenden Transkribierungstools, Bildgeneratoren, Dokumentenanalysen oder KI-Assistenten zur Verfügung stellen – auch als Lernort für unterschiedliche Sprachmodelle.</p>
-      </>
+      <div className="space-y-5">
+        <p className="text-gray-600 italic text-xs">Jedes Beispiel zeigt, welche pädagogischen Merkmale es unterstützt und wie es im ABU-Unterricht eingesetzt werden kann.</p>
+
+        {/* Beispiel 1 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🔗</span>
+            <strong className="text-violet-800">QR-Code & Kurzlink erstellen</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Einen Lerninhalt per Smartphone oder Papierunterlage zugänglich machen – mit Nutzungsauswertung. Wenn der QR-Code über einen verkürzten Link erzeugt wird, ist die Häufigkeit der Nutzung automatisch sichtbar.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🧭 Orientierung</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">👁️ Lernprozesse einsehbar</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">ABU: Lernmaterial zu Themen wie Arbeit, Recht, Gesellschaft direkt verlinken</span>
+          </div>
+        </div>
+
+        {/* Beispiel 2 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">📌</span>
+            <strong className="text-violet-800">Pinnwand, Umfrage & Wortwolke</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Einfache Padlet-Alternative – schnell erstellt, direkt in einen Lernraum integrierbar. Mit Umfragen und Wortwolken Vorwissen aktivieren und Wissensreflexion ermöglichen.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">💬 Feedbackorientiert</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🏃 Aktivitätsmotivierend</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">ABU: Einstieg in Themen wie Konsum, Demokratie, Migration mit Wortwolke zum Vorwissen</span>
+          </div>
+        </div>
+
+        {/* Beispiel 3 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🎙️</span>
+            <strong className="text-violet-800">Unterrichtsmaterial mit KI-Multimediatools aufbereiten</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Als Lehrperson einen Podcast erstellen lassen oder Transkripte von Videos und Audiodateien erzeugen – als Unterlagenbasis für Lernende.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🎬 Multimedial</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">⏱️ Zeitlich entlastend</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">ABU: Podcast zu einem ABU-Thema (z.B. AHV, Mietrecht) als Lerngrundlage aufbereiten</span>
+          </div>
+        </div>
+
+        {/* Beispiel 4 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🛠️</span>
+            <strong className="text-violet-800">KI-Tools im Lernraum für Lernende bereitstellen</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Lernende erhalten Zugang zu Transkribierungs-Tools und Bildgeneratoren im geschützten Lernraum – ohne eigene Accounts.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🛤️ Individuelle Lernwege</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🏫 Lernraum-Pluralität</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">ABU: Lernende transkribieren ein Interview zu einem Gesellschaftsthema selbstständig</span>
+          </div>
+        </div>
+
+        {/* Beispiel 5 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🤖</span>
+            <strong className="text-violet-800">KI-Assistent für Lernende bereitstellen</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Lernende erhalten einen konfigurierten KI-Assistenten – als Dialogpartner, Lernassistent zur Wissensvermittlung oder Bot zur Dokumentenanalyse.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🤖 KI-Assistenz</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">💬 Feedbackorientiert</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">ABU/SLP: KI erklärt Lernenden Rechtstexte, gibt Feedback auf Argumentationen in Dialogen</span>
+          </div>
+        </div>
+
+        {/* Beispiel 6 */}
+        <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🎓</span>
+            <strong className="text-violet-800">Lernende als Medienexpert/innen ausbilden</strong>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">Lernende erstellen selbst KI-Assistenten oder Podcasts, erfassen Merkmale unterschiedlicher Sprachmodelle und werden so zu kompetenten Nutzer/innen digitaler Werkzeuge.</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">💪 Übungsintensiv</span>
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">🏃 Aktivitätsabhängig</span>
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">SLP: Handlungskompetenz «Medien & Digitalität» – Lernende produzieren und reflektieren</span>
+          </div>
+        </div>
+      </div>
     )
   },
 ];
