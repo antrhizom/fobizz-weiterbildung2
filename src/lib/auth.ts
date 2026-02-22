@@ -75,20 +75,32 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
   try {
     const { collection, query, where, getDocs } = await import('firebase/firestore');
 
-    const q = query(
-      collection(db, 'fobizz_users'),
-      where('code', '==', code.toUpperCase())
-    );
-    const querySnapshot = await getDocs(q);
+    // Suche in fobizz_users UND users (to-teach-edu), jeweils upper- und lowercase
+    let querySnapshot = null;
+    let foundCollection = '';
 
-    if (querySnapshot.empty) {
+    for (const col of ['fobizz_users', 'users']) {
+      for (const searchCode of [code.toUpperCase(), code.toLowerCase()]) {
+        const q = query(collection(db, col), where('code', '==', searchCode));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          querySnapshot = snap;
+          foundCollection = col;
+          break;
+        }
+      }
+      if (querySnapshot) break;
+    }
+
+    if (!querySnapshot || querySnapshot.empty) {
       throw new Error('Code nicht gefunden');
     }
 
     const userDoc = querySnapshot.docs[0];
     const userData = userDoc.data();
 
-    await signInWithEmailAndPassword(auth, userData.email, code.toUpperCase());
+    // Passwort = gespeicherter Code (nicht user-input, damit case stimmt)
+    await signInWithEmailAndPassword(auth, userData.email, userData.code);
 
     return {
       ...userData,
@@ -96,7 +108,7 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
     } as User;
   } catch (error: any) {
     console.error('Login error:', error);
-    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       throw new Error('Code nicht gefunden oder ungültig');
     } else if (error.message === 'Code nicht gefunden') {
       throw error;
