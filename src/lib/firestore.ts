@@ -67,14 +67,23 @@ export async function checkUsernameExists(username: string): Promise<boolean> {
   return !querySnapshot.empty;
 }
 
+// Findet die korrekte Collection für einen User (fobizz_users oder users)
+async function getUserCollection(userId: string): Promise<string> {
+  const fobizzSnap = await getDoc(doc(db, USERS_COLLECTION, userId));
+  if (fobizzSnap.exists()) return USERS_COLLECTION;
+  return 'users'; // Fallback: to-teach-edu Collection
+}
+
 export async function updateUserSubtasks(userId: string, subtasks: Record<string, string>) {
-  await updateDoc(doc(db, USERS_COLLECTION, userId), {
+  const col = await getUserCollection(userId);
+  await updateDoc(doc(db, col, userId), {
     completedSubtasks: subtasks
   });
 }
 
 export async function updateUserRatings(userId: string, ratings: Record<number, TaskRating>) {
-  await updateDoc(doc(db, USERS_COLLECTION, userId), {
+  const col = await getUserCollection(userId);
+  await updateDoc(doc(db, col, userId), {
     ratings: ratings
   });
 }
