@@ -9,6 +9,10 @@ import { User } from '@/types';
 import Navigation from '@/components/Navigation';
 import { GraduationCap, Shield, Wrench, Users, CheckCircle, Circle, ChevronDown, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
+// Gesamtzahl der interaktiven Aktionen (4 Accordion + 4 Reveal + 3 Quiz = 11)
+const TOTAL_ACTIONS = 11;
+const UNLOCK_THRESHOLD = 0.8; // 80%
+
 export default function WasIstFobizzPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -16,6 +20,7 @@ export default function WasIstFobizzPage() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [openedAccordions, setOpenedAccordions] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizResults, setQuizResults] = useState<Record<string, boolean | null>>({});
@@ -59,6 +64,19 @@ export default function WasIstFobizzPage() {
     setQuizAnswers({ ...quizAnswers, [qKey]: answer });
     setQuizResults({ ...quizResults, [qKey]: answer === correct });
   };
+
+  const handleAccordionToggle = (id: string) => {
+    setOpenAccordion(openAccordion === id ? null : id);
+    setOpenedAccordions(prev => new Set(prev).add(id));
+  };
+
+  // Fortschritt der Interaktionen berechnen
+  const completedActions =
+    openedAccordions.size +
+    Object.values(revealed).filter(Boolean).length +
+    Object.keys(quizAnswers).length;
+  const activityProgress = Math.round((completedActions / TOTAL_ACTIONS) * 100);
+  const confirmUnlocked = completedActions / TOTAL_ACTIONS >= UNLOCK_THRESHOLD;
 
   const allChecked = confirmItems.every(q => checked[q.key]);
   const checkedCount = confirmItems.filter(q => checked[q.key]).length;
@@ -106,7 +124,7 @@ export default function WasIstFobizzPage() {
             {accordionItems.map((item) => (
               <div key={item.id} className="border-2 border-gray-200 rounded-xl overflow-hidden">
                 <button
-                  onClick={() => setOpenAccordion(openAccordion === item.id ? null : item.id)}
+                  onClick={() => handleAccordionToggle(item.id)}
                   className="w-full flex items-center justify-between p-4 bg-white/60 hover:bg-primary-50 transition-colors text-left"
                 >
                   <div className="flex items-center gap-3">
@@ -233,8 +251,30 @@ export default function WasIstFobizzPage() {
         {/* Bestätigung */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
           className="glass-card rounded-2xl p-8">
-          <h2 className="text-xl font-bold mb-5">✅ Ich bestätige...</h2>
-          <div className="space-y-3">
+          <h2 className="text-xl font-bold mb-2">✅ Ich bestätige...</h2>
+
+          {!confirmUnlocked ? (
+            <div className="mb-6">
+              <p className="text-gray-500 text-sm mb-3">
+                Schliesse zuerst mindestens 80% der Aktivitäten ab, um die Bestätigung freizuschalten.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    animate={{ width: `${activityProgress}%` }}
+                    transition={{ duration: 0.4 }}
+                    className="h-full bg-gradient-to-r from-blue-400 to-primary-500 rounded-full"
+                  />
+                </div>
+                <span className="text-sm font-semibold text-gray-600 w-12 text-right">{activityProgress}%</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{completedActions} von {TOTAL_ACTIONS} Aktionen abgeschlossen</p>
+            </div>
+          ) : (
+            <p className="text-green-600 text-sm mb-5 font-medium">🔓 Freigeschaltet – du hast {activityProgress}% der Aktivitäten absolviert!</p>
+          )}
+
+          <div className={`space-y-3 transition-all duration-500 ${!confirmUnlocked ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             {confirmItems.map((item, i) => (
               <motion.button
                 key={item.key}
@@ -242,7 +282,7 @@ export default function WasIstFobizzPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + i * 0.07 }}
                 onClick={() => handleCheck(item.key)}
-                disabled={saving}
+                disabled={saving || !confirmUnlocked}
                 className={`w-full text-left flex items-start gap-4 p-4 rounded-xl border-2 transition-all duration-200 ${
                   checked[item.key]
                     ? 'border-green-400 bg-green-50'
