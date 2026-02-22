@@ -164,9 +164,12 @@ export function onAuthChange(callback: (user: FirebaseUser | null) => void) {
 }
 
 export async function getUserData(uid: string): Promise<User | null> {
-  const docSnap = await getDoc(doc(db, 'fobizz_users', uid));
-  if (docSnap.exists()) {
-    return { userId: docSnap.id, ...docSnap.data() } as User;
+  // Zuerst in fobizz_users suchen, dann in users (to-teach-edu)
+  for (const col of ['fobizz_users', 'users']) {
+    const docSnap = await getDoc(doc(db, col, uid));
+    if (docSnap.exists()) {
+      return { userId: docSnap.id, ...docSnap.data() } as User;
+    }
   }
   return null;
 }
