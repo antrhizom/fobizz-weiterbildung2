@@ -102,6 +102,12 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
     // Passwort = gespeicherter Code (nicht user-input, damit case stimmt)
     await signInWithEmailAndPassword(auth, userData.email, userData.code);
 
+    // Wenn User aus to-teach-edu ('users' Collection): fobizzActive setzen
+    if (foundCollection === 'users' && !userData.fobizzActive) {
+      const { updateDoc, doc: firestoreDoc } = await import('firebase/firestore');
+      await updateDoc(firestoreDoc(db, 'users', userDoc.id), { fobizzActive: true });
+    }
+
     return {
       ...userData,
       userId: userDoc.id

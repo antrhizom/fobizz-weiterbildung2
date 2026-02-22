@@ -36,10 +36,11 @@ export async function getUser(userId: string): Promise<User | null> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  // Beide Collections laden: fobizz_users (direkt registriert) + users (to-teach-edu Codes)
+  // fobizz_users: alle (direkt registriert)
+  // users (to-teach-edu): nur jene, die sich mindestens einmal auf fobizz eingeloggt haben (fobizzActive: true)
   const [fobizzSnap, usersSnap] = await Promise.all([
     getDocs(collection(db, USERS_COLLECTION)),
-    getDocs(collection(db, 'users')),
+    getDocs(query(collection(db, 'users'), where('fobizzActive', '==', true))),
   ]);
   const fobizzUsers = fobizzSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
   const teachUsers = usersSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
