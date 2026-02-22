@@ -10,6 +10,26 @@ import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
 import { Shield, Users, Trash2, RotateCcw, Download, TrendingUp } from 'lucide-react';
 
+// Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
+function countTaskKeys(subs: Record<string, string> | undefined): number {
+  return Object.keys(subs || {}).filter(k => /^\d+-\d+$/.test(k)).length;
+}
+
+const SECTION_CONFIRM_KEYS = [
+  'fobizz-q1', 'fobizz-q2', 'fobizz-q3', 'fobizz-q4',
+  'paed-q1', 'paed-q2', 'paed-q3', 'paed-q4',
+  'bsp-q1', 'bsp-q2', 'bsp-q3',
+];
+
+const TOTAL_SUBTASKS = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
+const TOTAL_ALL = TOTAL_SUBTASKS + SECTION_CONFIRM_KEYS.length;
+
+function userProgress(u: User): number {
+  const taskDone = countTaskKeys(u.completedSubtasks);
+  const sectionDone = SECTION_CONFIRM_KEYS.filter(k => u.completedSubtasks?.[k]).length;
+  return Math.min(Math.round(((taskDone + sectionDone) / TOTAL_ALL) * 100), 100);
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -63,27 +83,27 @@ export default function AdminPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt Admin-Dashboard...</div></div>;
   if (!isAdmin) return null;
 
-  const totalSubtasks = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
+  const totalParticipants = allUsers.length;
 
-  // Durchschnittsfortschritt
-  const avgProgress = allUsers.length > 0
-    ? Math.round(allUsers.reduce((acc, u) => {
-        const done = Object.keys(u.completedSubtasks || {}).length;
-        return acc + (done / totalSubtasks) * 100;
-      }, 0) / allUsers.length)
+  const avgProgress = totalParticipants > 0
+    ? Math.round(allUsers.reduce((acc, u) => acc + userProgress(u), 0) / totalParticipants)
     : 0;
 
-  // Aufgaben-Abschlussquoten
   const taskStats = TASKS.map(task => {
     const completed = allUsers.filter(u =>
       task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
     ).length;
-    return { task, completed, pct: allUsers.length > 0 ? Math.round((completed / allUsers.length) * 100) : 0 };
+    return {
+      task,
+      completed,
+      pct: totalParticipants > 0 ? Math.round((completed / totalParticipants) * 100) : 0
+    };
   });
 
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           className="glass-card rounded-2xl p-6 mb-6">
@@ -102,7 +122,7 @@ export default function AdminPage() {
         <div className="grid md:grid-cols-3 gap-6 mb-6">
           <div className="glass-card rounded-2xl p-6 text-center">
             <Users className="w-8 h-8 text-primary-600 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{allUsers.length}</div>
+            <div className="text-4xl font-bold gradient-text mb-1">{totalParticipants}</div>
             <div className="text-gray-600 text-sm">Teilnehmende gesamt</div>
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
@@ -113,9 +133,9 @@ export default function AdminPage() {
           <div className="glass-card rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">✅</div>
             <div className="text-4xl font-bold gradient-text mb-1">
-              {taskStats.filter(t => t.pct >= 50).length}
+              {allUsers.filter(u => userProgress(u) >= 50).length}
             </div>
-            <div className="text-gray-600 text-sm">Aufgaben von ≥50% abgeschlossen</div>
+            <div className="text-gray-600 text-sm">Teilnehmende mit ≥50% erledigt</div>
           </div>
         </div>
 
@@ -143,7 +163,7 @@ export default function AdminPage() {
                     <span className="text-2xl">{task.iconEmoji}</span>
                     <span className="font-semibold text-gray-800 text-sm">{idx + 1}. {task.title}</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-700">{completed}/{allUsers.length} ({pct}%)</span>
+                  <span className="text-sm font-bold text-gray-700">{completed}/{totalParticipants} ({pct}%)</span>
                 </div>
                 <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
                   <div style={{ width: `${pct}%` }}
@@ -170,8 +190,7 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {allUsers.map(user => {
-                  const done = Object.keys(user.completedSubtasks || {}).length;
-                  const pct = Math.round((done / totalSubtasks) * 100);
+                  const pct = userProgress(user);
                   return (
                     <tr key={user.userId} className="border-b border-gray-100 hover:bg-white/50">
                       <td className="py-4 px-4 font-medium">{user.username}</td>
@@ -190,7 +209,7 @@ export default function AdminPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-600">
-                        {new Date(user.createdAt).toLocaleDateString('de-DE')}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-CH') : '–'}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex gap-2 justify-end">
