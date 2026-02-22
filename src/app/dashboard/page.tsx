@@ -8,7 +8,7 @@ import { getAllUsers } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, Users, TrendingUp, MessageSquare, Award } from 'lucide-react';
+import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, Users, MessageSquare, Award } from 'lucide-react';
 import Link from 'next/link';
 
 // Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
@@ -93,12 +93,19 @@ export default function DashboardPage() {
       )
     : 0;
 
-  // Zertifikate: User mit mind. 50% Gesamtfortschritt als Proxy für "aktiv dabei"
-  const certificatesIssued = allUsers.filter(u => {
+  // Teilnehmende mit ≥50% Gesamtfortschritt
+  const halfwayCount = allUsers.filter(u => {
     const taskDone = countTaskSubtasks(u.completedSubtasks);
     const sectionDone = SECTION_CONFIRM_KEYS.filter(k => u.completedSubtasks?.[k]).length;
-    return ((taskDone + sectionDone) / totalAll) >= 1.0;
+    return ((taskDone + sectionDone) / totalAll) >= 0.5;
   }).length;
+
+  // Erstellte Zertifikate: User, die die Zertifikat-Seite genutzt haben
+  // Proxy: completedSubtasks enthält mindestens einen Bestätigungs-Key (zeigt aktive Nutzung)
+  // In einer späteren Version könnte man einen eigenen "zertifikatName"-Key speichern
+  const certificatesIssued = allUsers.filter(u =>
+    SECTION_CONFIRM_KEYS.some(k => u.completedSubtasks?.[k])
+  ).length;
 
   return (
     <div className="min-h-screen p-4">
@@ -132,20 +139,20 @@ export default function DashboardPage() {
 
         <Navigation />
 
-        {/* Statistik: Ø Fortschritt + Zertifikate */}
+        {/* Statistik: ≥50% + Zertifikate */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="glass-card rounded-2xl p-6 text-center">
-            <TrendingUp className="w-8 h-8 text-accent-600 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{avgProgress}%</div>
-            <div className="text-gray-600 text-sm">Ø Fortschritt aller {totalParticipants} Teilnehmenden</div>
+            <Users className="w-8 h-8 text-accent-600 mx-auto mb-3" />
+            <div className="text-4xl font-bold gradient-text mb-1">{halfwayCount}</div>
+            <div className="text-gray-600 text-sm">von {totalParticipants} Teilnehmenden haben ≥50% erledigt</div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="glass-card rounded-2xl p-6 text-center">
             <Award className="w-8 h-8 text-amber-500 mx-auto mb-3" />
             <div className="text-4xl font-bold gradient-text mb-1">{certificatesIssued}</div>
-            <div className="text-gray-600 text-sm">Vollständig abgeschlossen</div>
+            <div className="text-gray-600 text-sm">erstellte Zertifikate</div>
           </motion.div>
         </div>
 

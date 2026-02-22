@@ -36,11 +36,17 @@ export async function getUser(userId: string): Promise<User | null> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const querySnapshot = await getDocs(collection(db, USERS_COLLECTION));
-  return querySnapshot.docs.map(d => ({
-    userId: d.id,
-    ...d.data()
-  })) as User[];
+  // Beide Collections laden: fobizz_users (direkt registriert) + users (to-teach-edu Codes)
+  const [fobizzSnap, usersSnap] = await Promise.all([
+    getDocs(collection(db, USERS_COLLECTION)),
+    getDocs(collection(db, 'users')),
+  ]);
+  const fobizzUsers = fobizzSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
+  const teachUsers = usersSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
+  // Duplikate vermeiden (falls ein User in beiden Collections vorkommt)
+  const seen = new Set(fobizzUsers.map(u => u.userId));
+  const merged = [...fobizzUsers, ...teachUsers.filter(u => !seen.has(u.userId))];
+  return merged;
 }
 
 export async function getUserByCode(code: string): Promise<User | null> {
