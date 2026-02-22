@@ -85,9 +85,9 @@ export default function AdminPage() {
 
   const totalParticipants = allUsers.length;
 
-  const avgProgress = totalParticipants > 0
-    ? Math.round(allUsers.reduce((acc, u) => acc + userProgress(u), 0) / totalParticipants)
-    : 0;
+  const certificatesIssued = allUsers.filter(u =>
+    SECTION_CONFIRM_KEYS.some(k => u.completedSubtasks?.[k])
+  ).length;
 
   const taskStats = TASKS.map(task => {
     const completed = allUsers.filter(u =>
@@ -126,9 +126,9 @@ export default function AdminPage() {
             <div className="text-gray-600 text-sm">Teilnehmende gesamt</div>
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
-            <TrendingUp className="w-8 h-8 text-accent-600 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{avgProgress}%</div>
-            <div className="text-gray-600 text-sm">Ø Fortschritt</div>
+            <div className="text-4xl mb-3">🏆</div>
+            <div className="text-4xl font-bold gradient-text mb-1">{certificatesIssued}</div>
+            <div className="text-gray-600 text-sm">Ausgestellte Zertifikate</div>
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">✅</div>
