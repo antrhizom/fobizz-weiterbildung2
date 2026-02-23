@@ -3,7 +3,9 @@ export interface User {
   username: string;
   code: string;
   email: string;
+  group?: string;           // Gruppen-Zugehörigkeit (aus to-teach)
   isVirtual?: boolean;
+  fobizzActive?: boolean;   // to-teach User hat sich auf fobizz eingeloggt
   createdAt: string;
   completedSubtasks: Record<string, string>;
   ratings: Record<number, TaskRating>;

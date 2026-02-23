@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { onAuthChange, getUserData } from '@/lib/auth';
+import { updateUserSubtasks } from '@/lib/firestore';
 import { User } from '@/types';
 import Navigation from '@/components/Navigation';
 import { Award, Printer, CheckCircle, Circle, Edit3 } from 'lucide-react';
@@ -46,6 +47,15 @@ export default function ZertifikatPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
+
+  const handlePrint = async () => {
+    if (user && !user.completedSubtasks?.['cert-issued']) {
+      const updated = { ...(user.completedSubtasks || {}), 'cert-issued': new Date().toISOString() };
+      await updateUserSubtasks(user.userId, updated);
+      setUser({ ...user, completedSubtasks: updated });
+    }
+    window.print();
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
@@ -124,7 +134,7 @@ export default function ZertifikatPage() {
                 </div>
               </div>
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow text-sm"
               >
                 <Printer className="w-4 h-4" />

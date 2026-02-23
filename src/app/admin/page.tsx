@@ -6,11 +6,11 @@ import { motion } from 'framer-motion';
 import { onAuthChange, checkIsAdmin } from '@/lib/auth';
 import { getAllUsers, deleteUser, resetUserProgress, exportAllData } from '@/lib/firestore';
 import { User } from '@/types';
-import { TASKS } from '@/lib/constants';
+import { TASKS, RATING_QUESTIONS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Shield, Users, Trash2, RotateCcw, Download, TrendingUp } from 'lucide-react';
+import { Shield, Users, Trash2, RotateCcw, Download, TrendingUp, Star, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
+// Nur Aufgaben-Keys (Format: "1-0", "2-3")
 function countTaskKeys(subs: Record<string, string> | undefined): number {
   return Object.keys(subs || {}).filter(k => /^\d+-\d+$/.test(k)).length;
 }
@@ -30,11 +30,18 @@ function userProgress(u: User): number {
   return Math.min(Math.round(((taskDone + sectionDone) / TOTAL_ALL) * 100), 100);
 }
 
+function ratingStars(value: number | null): string {
+  if (value === null) return '–';
+  const full = Math.round(value);
+  return '★'.repeat(full) + '☆'.repeat(3 - full) + ` (${value.toFixed(1)})`;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [expandedTask, setExpandedTask] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
@@ -42,8 +49,7 @@ export default function AdminPage() {
       const adminStatus = await checkIsAdmin();
       if (!adminStatus) { alert('Keine Admin-Berechtigung!'); router.push('/'); return; }
       setIsAdmin(true);
-      const users = await getAllUsers();
-      setAllUsers(users);
+      setAllUsers(await getAllUsers());
       setLoading(false);
     });
     return () => unsubscribe();
@@ -51,18 +57,14 @@ export default function AdminPage() {
 
   const handleDeleteUser = async (userId: string, username: string) => {
     if (!confirm(`User "${username}" wirklich löschen?`)) return;
-    try {
-      await deleteUser(userId);
-      setAllUsers(await getAllUsers());
-    } catch { alert('Fehler beim Löschen'); }
+    try { await deleteUser(userId); setAllUsers(await getAllUsers()); }
+    catch { alert('Fehler beim Löschen'); }
   };
 
   const handleResetUser = async (userId: string, username: string) => {
     if (!confirm(`Fortschritt von "${username}" zurücksetzen?`)) return;
-    try {
-      await resetUserProgress(userId);
-      setAllUsers(await getAllUsers());
-    } catch { alert('Fehler beim Zurücksetzen'); }
+    try { await resetUserProgress(userId); setAllUsers(await getAllUsers()); }
+    catch { alert('Fehler beim Zurücksetzen'); }
   };
 
   const handleExport = async () => {
@@ -73,10 +75,8 @@ export default function AdminPage() {
       const a = document.createElement('a');
       a.href = url;
       a.download = `fobizz-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch { alert('Fehler beim Export'); }
   };
 
@@ -85,18 +85,52 @@ export default function AdminPage() {
 
   const totalParticipants = allUsers.length;
 
-  const certificatesIssued = allUsers.filter(u =>
-    SECTION_CONFIRM_KEYS.some(k => u.completedSubtasks?.[k])
-  ).length;
+  // Zertifikate: User mit gesetztem cert-issued Key
+  const certificatesIssued = allUsers.filter(u => u.completedSubtasks?.['cert-issued']).length;
 
+  // ≥50% Fortschritt
+  const halfwayCount = allUsers.filter(u => userProgress(u) >= 50).length;
+
+  // Einzigartige Gruppen (aus to-teach Users)
+  const allGroups = [...new Set(allUsers.map(u => u.group).filter(Boolean))] as string[];
+
+  // Aufgaben-Statistik: Gesamt + pro Gruppe + Ratings
   const taskStats = TASKS.map(task => {
-    const completed = allUsers.filter(u =>
+    // Gesamt-Abschluss
+    const completedAll = allUsers.filter(u =>
       task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
     ).length;
+
+    // Pro Gruppe
+    const byGroup = allGroups.map(group => {
+      const groupUsers = allUsers.filter(u => u.group === group);
+      const completed = groupUsers.filter(u =>
+        task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
+      ).length;
+      return {
+        group,
+        count: groupUsers.length,
+        completed,
+        pct: groupUsers.length > 0 ? Math.round((completed / groupUsers.length) * 100) : 0,
+      };
+    });
+
+    // Ratings
+    const rated = allUsers.filter(u => u.ratings?.[task.id]);
+    const avgRating = (key: 'enjoyed' | 'useful' | 'learned') =>
+      rated.length > 0
+        ? Math.round(rated.reduce((a, u) => a + (u.ratings[task.id]?.[key] ?? 0), 0) / rated.length * 10) / 10
+        : null;
+
     return {
       task,
-      completed,
-      pct: totalParticipants > 0 ? Math.round((completed / totalParticipants) * 100) : 0
+      completedAll,
+      pctAll: totalParticipants > 0 ? Math.round((completedAll / totalParticipants) * 100) : 0,
+      byGroup,
+      ratingCount: rated.length,
+      enjoyed: avgRating('enjoyed'),
+      useful: avgRating('useful'),
+      learned: avgRating('learned'),
     };
   });
 
@@ -132,9 +166,7 @@ export default function AdminPage() {
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">✅</div>
-            <div className="text-4xl font-bold gradient-text mb-1">
-              {allUsers.filter(u => userProgress(u) >= 50).length}
-            </div>
+            <div className="text-4xl font-bold gradient-text mb-1">{halfwayCount}</div>
             <div className="text-gray-600 text-sm">Teilnehmende mit ≥50% erledigt</div>
           </div>
         </div>
@@ -149,26 +181,119 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Aufgaben-Fortschritt */}
+        {/* Aufgaben-Fortschritt mit Gruppen & Ratings */}
         <div className="glass-card rounded-2xl p-8 mb-6">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <TrendingUp className="w-7 h-7 text-primary-600" />
-            Fortschritt nach Aufgabe
+            Fortschritt & Bewertungen nach Aufgabe
           </h2>
           <div className="space-y-4">
-            {taskStats.map(({ task, completed, pct }, idx) => (
-              <div key={task.id} className="bg-white/50 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{task.iconEmoji}</span>
-                    <span className="font-semibold text-gray-800 text-sm">{idx + 1}. {task.title}</span>
+            {taskStats.map(({ task, completedAll, pctAll, byGroup, ratingCount, enjoyed, useful, learned }) => (
+              <div key={task.id} className="bg-white/50 rounded-xl overflow-hidden border border-gray-100">
+
+                {/* Kopfzeile – klickbar für Details */}
+                <button
+                  className="w-full text-left p-4"
+                  onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{task.iconEmoji}</span>
+                      <span className="font-semibold text-gray-800 text-sm">{task.title}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-gray-700">
+                        {completedAll}/{totalParticipants} ({pctAll}%)
+                      </span>
+                      {expandedTask === task.id
+                        ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                        : <ChevronDown className="w-4 h-4 text-gray-400" />
+                      }
+                    </div>
                   </div>
-                  <span className="text-sm font-bold text-gray-700">{completed}/{totalParticipants} ({pct}%)</span>
-                </div>
-                <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div style={{ width: `${pct}%` }}
-                    className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" />
-                </div>
+                  <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div style={{ width: `${pctAll}%` }}
+                      className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" />
+                  </div>
+                </button>
+
+                {/* Detail-Aufklappbereich */}
+                {expandedTask === task.id && (
+                  <div className="border-t border-gray-100 p-4 space-y-4 bg-white/30">
+
+                    {/* Ratings */}
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Star className="w-3 h-3" /> Bewertungen ({ratingCount} von {totalParticipants})
+                      </h4>
+                      {ratingCount === 0 ? (
+                        <p className="text-sm text-gray-400 italic">Noch keine Bewertungen</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-3">
+                          {RATING_QUESTIONS.map(q => {
+                            const val = q.id === 'enjoyed' ? enjoyed : q.id === 'useful' ? useful : learned;
+                            return (
+                              <div key={q.id} className="bg-white rounded-lg p-3 text-center border border-gray-100">
+                                <div className="text-2xl mb-1">{q.emoji}</div>
+                                <div className="text-xs text-gray-500 mb-1">{q.label}</div>
+                                <div className="text-amber-500 text-sm font-bold">
+                                  {val !== null ? (
+                                    <>{'★'.repeat(Math.round(val))}{'☆'.repeat(3 - Math.round(val))}</>
+                                  ) : '–'}
+                                </div>
+                                <div className="text-xs text-gray-500">{val !== null ? `${val.toFixed(1)} / 3` : ''}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gruppen-Aufschlüsselung */}
+                    {allGroups.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                          Gruppen-Aufschlüsselung
+                        </h4>
+                        <div className="space-y-2">
+                          {byGroup.map(g => (
+                            <div key={g.group} className="flex items-center gap-3">
+                              <span className="text-xs font-semibold text-gray-600 w-24 truncate capitalize">{g.group}</span>
+                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div style={{ width: `${g.pct}%` }}
+                                  className="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full" />
+                              </div>
+                              <span className="text-xs font-bold text-gray-600 w-20 text-right">
+                                {g.completed}/{g.count} ({g.pct}%)
+                              </span>
+                            </div>
+                          ))}
+                          {/* Ohne Gruppe */}
+                          {(() => {
+                            const noGroup = allUsers.filter(u => !u.group);
+                            if (noGroup.length === 0) return null;
+                            const completed = noGroup.filter(u =>
+                              task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
+                            ).length;
+                            const pct = Math.round(completed / noGroup.length * 100);
+                            return (
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-semibold text-gray-400 w-24">Ohne Gruppe</span>
+                                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div style={{ width: `${pct}%` }}
+                                    className="h-full bg-gray-400 rounded-full" />
+                                </div>
+                                <span className="text-xs font-bold text-gray-400 w-20 text-right">
+                                  {completed}/{noGroup.length} ({pct}%)
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -182,24 +307,32 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="text-left py-4 px-4 font-semibold">Name</th>
+                  <th className="text-left py-4 px-4 font-semibold">Gruppe</th>
                   <th className="text-left py-4 px-4 font-semibold">Code</th>
                   <th className="text-left py-4 px-4 font-semibold">Fortschritt</th>
-                  <th className="text-left py-4 px-4 font-semibold">Registriert</th>
+                  <th className="text-left py-4 px-4 font-semibold">Zertifikat</th>
                   <th className="text-right py-4 px-4 font-semibold">Aktionen</th>
                 </tr>
               </thead>
               <tbody>
                 {allUsers.map(user => {
                   const pct = userProgress(user);
+                  const hasCert = !!user.completedSubtasks?.['cert-issued'];
                   return (
                     <tr key={user.userId} className="border-b border-gray-100 hover:bg-white/50">
-                      <td className="py-4 px-4 font-medium">{user.username}</td>
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4 font-medium">{user.username}</td>
+                      <td className="py-3 px-4">
+                        {user.group
+                          ? <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full capitalize">{user.group}</span>
+                          : <span className="text-xs text-gray-300">–</span>
+                        }
+                      </td>
+                      <td className="py-3 px-4">
                         <code className="bg-gray-100 px-2 py-1 rounded font-mono text-sm">{user.code}</code>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 max-w-[120px]">
+                          <div className="flex-1 max-w-[100px]">
                             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div style={{ width: `${pct}%` }}
                                 className="h-full bg-gradient-to-r from-primary-500 to-accent-500" />
@@ -208,10 +341,13 @@ export default function AdminPage() {
                           <span className="font-semibold text-sm">{pct}%</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-sm text-gray-600">
-                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-CH') : '–'}
+                      <td className="py-3 px-4">
+                        {hasCert
+                          ? <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🏆 erstellt</span>
+                          : <span className="text-xs text-gray-300">–</span>
+                        }
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex gap-2 justify-end">
                           <button onClick={() => handleResetUser(user.userId, user.username)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -238,6 +374,7 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

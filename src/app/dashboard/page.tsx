@@ -100,12 +100,8 @@ export default function DashboardPage() {
     return ((taskDone + sectionDone) / totalAll) >= 0.5;
   }).length;
 
-  // Erstellte Zertifikate: User, die die Zertifikat-Seite genutzt haben
-  // Proxy: completedSubtasks enthält mindestens einen Bestätigungs-Key (zeigt aktive Nutzung)
-  // In einer späteren Version könnte man einen eigenen "zertifikatName"-Key speichern
-  const certificatesIssued = allUsers.filter(u =>
-    SECTION_CONFIRM_KEYS.some(k => u.completedSubtasks?.[k])
-  ).length;
+  // Erstellte Zertifikate: User die den Drucken-Button auf /zertifikat geklickt haben
+  const certificatesIssued = allUsers.filter(u => u.completedSubtasks?.['cert-issued']).length;
 
   return (
     <div className="min-h-screen p-4">
