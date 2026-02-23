@@ -3,14 +3,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
-// Dieselbe Firebase-Datenbank wie to-teach-edu → Codes funktionieren in beiden Apps
+// Eigenes Firebase-Projekt für fobizz-Weiterbildung (getrennt von to-teach-edu)
 const firebaseConfig = {
-  apiKey: "AIzaSyACZvcT_03XaWKP0qKrZFZoIKILx5-lZps",
-  authDomain: "toteach-edu.firebaseapp.com",
-  projectId: "toteach-edu",
-  storageBucket: "toteach-edu.firebasestorage.app",
-  messagingSenderId: "551338168510",
-  appId: "1:551338168510:web:6007104d08bf00959d4eef"
+  apiKey: "AIzaSyAO87M2lwGKGVNwd81lpNzafaNk7X-INqc",
+  authDomain: "wbdlh-fobizz.firebaseapp.com",
+  projectId: "wbdlh-fobizz",
+  storageBucket: "wbdlh-fobizz.firebasestorage.app",
+  messagingSenderId: "621619661633",
+  appId: "1:621619661633:web:8e154186713e5a9467afc0"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];

@@ -12,7 +12,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import { User, Comment, PDFData, TaskRating } from '@/types';
+import { User, Comment, PDFData } from '@/types';
 
 const USERS_COLLECTION = 'fobizz_users';
 const COMMENTS_COLLECTION = 'fobizz_comments';
@@ -36,17 +36,8 @@ export async function getUser(userId: string): Promise<User | null> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  // fobizz_users: alle (direkt registriert)
-  // users (to-teach-edu): nur jene, die sich mindestens einmal auf fobizz eingeloggt haben (fobizzActive: true)
-  const [fobizzSnap, usersSnap] = await Promise.all([
-    getDocs(collection(db, USERS_COLLECTION)),
-    getDocs(query(collection(db, 'users'), where('fobizzActive', '==', true))),
-  ]);
-  const fobizzUsers = fobizzSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
-  const teachUsers = usersSnap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
-  // Duplikate vermeiden (falls ein User in beiden Collections vorkommt)
-  const seen = new Set(fobizzUsers.map(u => u.userId));
-  return [...fobizzUsers, ...teachUsers.filter(u => !seen.has(u.userId))];
+  const snap = await getDocs(collection(db, USERS_COLLECTION));
+  return snap.docs.map(d => ({ userId: d.id, ...d.data() })) as User[];
 }
 
 export async function getUserByCode(code: string): Promise<User | null> {
@@ -73,25 +64,12 @@ export async function checkUsernameExists(username: string): Promise<boolean> {
   return !querySnapshot.empty;
 }
 
-// Findet die korrekte Collection für einen User (fobizz_users oder users)
-async function getUserCollection(userId: string): Promise<string> {
-  const fobizzSnap = await getDoc(doc(db, USERS_COLLECTION, userId));
-  if (fobizzSnap.exists()) return USERS_COLLECTION;
-  return 'users'; // Fallback: to-teach-edu Collection
-}
-
 export async function updateUserSubtasks(userId: string, subtasks: Record<string, string>) {
-  const col = await getUserCollection(userId);
-  await updateDoc(doc(db, col, userId), {
-    completedSubtasks: subtasks
-  });
+  await updateDoc(doc(db, USERS_COLLECTION, userId), { completedSubtasks: subtasks });
 }
 
-export async function updateUserRatings(userId: string, ratings: Record<number, TaskRating>) {
-  const col = await getUserCollection(userId);
-  await updateDoc(doc(db, col, userId), {
-    ratings: ratings
-  });
+export async function updateUserRatings(userId: string, ratings: Record<number, object>) {
+  await updateDoc(doc(db, USERS_COLLECTION, userId), { ratings });
 }
 
 export async function deleteUser(userId: string) {

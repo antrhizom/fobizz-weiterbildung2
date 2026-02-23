@@ -75,21 +75,12 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
   try {
     const { collection, query, where, getDocs } = await import('firebase/firestore');
 
-    // Suche in fobizz_users UND users (to-teach-edu), jeweils upper- und lowercase
+    // Suche in fobizz_users (upper- und lowercase)
     let querySnapshot = null;
-    let foundCollection = '';
-
-    for (const col of ['fobizz_users', 'users']) {
-      for (const searchCode of [code.toUpperCase(), code.toLowerCase()]) {
-        const q = query(collection(db, col), where('code', '==', searchCode));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          querySnapshot = snap;
-          foundCollection = col;
-          break;
-        }
-      }
-      if (querySnapshot) break;
+    for (const searchCode of [code.toUpperCase(), code.toLowerCase()]) {
+      const q = query(collection(db, 'fobizz_users'), where('code', '==', searchCode));
+      const snap = await getDocs(q);
+      if (!snap.empty) { querySnapshot = snap; break; }
     }
 
     if (!querySnapshot || querySnapshot.empty) {
@@ -102,16 +93,7 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
     // Passwort = gespeicherter Code (nicht user-input, damit case stimmt)
     await signInWithEmailAndPassword(auth, userData.email, userData.code);
 
-    // Wenn User aus to-teach-edu ('users' Collection): fobizzActive setzen
-    if (foundCollection === 'users' && !userData.fobizzActive) {
-      const { updateDoc, doc: firestoreDoc } = await import('firebase/firestore');
-      await updateDoc(firestoreDoc(db, 'users', userDoc.id), { fobizzActive: true });
-    }
-
-    return {
-      ...userData,
-      userId: userDoc.id
-    } as User;
+    return { ...userData, userId: userDoc.id } as User;
   } catch (error: any) {
     console.error('Login error:', error);
     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -170,12 +152,9 @@ export function onAuthChange(callback: (user: FirebaseUser | null) => void) {
 }
 
 export async function getUserData(uid: string): Promise<User | null> {
-  // Zuerst in fobizz_users suchen, dann in users (to-teach-edu)
-  for (const col of ['fobizz_users', 'users']) {
-    const docSnap = await getDoc(doc(db, col, uid));
-    if (docSnap.exists()) {
-      return { userId: docSnap.id, ...docSnap.data() } as User;
-    }
+  const docSnap = await getDoc(doc(db, 'fobizz_users', uid));
+  if (docSnap.exists()) {
+    return { userId: docSnap.id, ...docSnap.data() } as User;
   }
   return null;
 }
