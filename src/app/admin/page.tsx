@@ -30,11 +30,6 @@ function userProgress(u: User): number {
   return Math.min(Math.round(((taskDone + sectionDone) / TOTAL_ALL) * 100), 100);
 }
 
-function ratingStars(value: number | null): string {
-  if (value === null) return '–';
-  const full = Math.round(value);
-  return '★'.repeat(full) + '☆'.repeat(3 - full) + ` (${value.toFixed(1)})`;
-}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -92,7 +87,7 @@ export default function AdminPage() {
   const halfwayCount = allUsers.filter(u => userProgress(u) >= 50).length;
 
   // Einzigartige Gruppen (aus to-teach Users)
-  const allGroups = [...new Set(allUsers.map(u => u.group).filter(Boolean))] as string[];
+  const allGroups = Array.from(new Set(allUsers.map(u => u.group).filter(Boolean))) as string[];
 
   // Aufgaben-Statistik: Gesamt + pro Gruppe + Ratings
   const taskStats = TASKS.map(task => {

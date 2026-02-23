@@ -23,12 +23,6 @@ const SECTION_CONFIRM_KEYS = [
   'bsp-q1', 'bsp-q2', 'bsp-q3',                         // Beispiele
 ];
 
-// Hat der User ein "Zertifikat ausgestellt" (Name gespeichert wäre ideal, aber wir prüfen ob >0% Fortschritt)
-// Proxy: User hat mindestens 1 Subtask erledigt
-function userHasProgress(u: User): boolean {
-  return countTaskSubtasks(u.completedSubtasks) > 0 ||
-    SECTION_CONFIRM_KEYS.some(k => u.completedSubtasks?.[k]);
-}
 
 export default function DashboardPage() {
   const router = useRouter();
