@@ -67,7 +67,8 @@ export default function AufgabenPage() {
   if (!user) return null;
 
   const totalSubtasks = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
-  const completedCount = Object.keys(user.completedSubtasks || {}).length;
+  // Nur echte Task-Keys zählen (Format "1-0", "2-1" etc.) – keine wif-acc-*, paed-rev-* usw.
+  const completedCount = Object.keys(user.completedSubtasks || {}).filter(k => /^\d+-\d+$/.test(k)).length;
   const progress = Math.round((completedCount / totalSubtasks) * 100);
 
   return (
