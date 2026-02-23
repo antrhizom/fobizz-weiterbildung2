@@ -8,7 +8,7 @@ import { getAllUsers, deleteUser, resetUserProgress, exportAllData } from '@/lib
 import { User } from '@/types';
 import { TASKS, RATING_QUESTIONS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Shield, Users, Trash2, RotateCcw, Download, TrendingUp, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Users, Trash2, RotateCcw, Download, TrendingUp, Star } from 'lucide-react';
 
 // Nur Aufgaben-Keys (Format: "1-0", "2-3")
 function countTaskKeys(subs: Record<string, string> | undefined): number {
@@ -36,7 +36,7 @@ export default function AdminPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [expandedTask, setExpandedTask] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
@@ -44,7 +44,11 @@ export default function AdminPage() {
       const adminStatus = await checkIsAdmin();
       if (!adminStatus) { alert('Keine Admin-Berechtigung!'); router.push('/'); return; }
       setIsAdmin(true);
-      setAllUsers(await getAllUsers());
+      try {
+        setAllUsers(await getAllUsers());
+      } catch (e: any) {
+        setLoadError('Fehler beim Laden: ' + (e?.message || String(e)));
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -77,6 +81,7 @@ export default function AdminPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt Admin-Dashboard...</div></div>;
   if (!isAdmin) return null;
+  if (loadError) return <div className="min-h-screen flex items-center justify-center"><div className="text-red-600 text-lg p-8 text-center">{loadError}</div></div>;
 
   const totalParticipants = allUsers.length;
 
@@ -176,119 +181,105 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Aufgaben-Fortschritt mit Gruppen & Ratings */}
+        {/* Aufgaben-Auswertung: immer offen */}
         <div className="glass-card rounded-2xl p-8 mb-6">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <TrendingUp className="w-7 h-7 text-primary-600" />
-            Fortschritt & Bewertungen nach Aufgabe
+            Aufgaben-Auswertung
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {taskStats.map(({ task, completedAll, pctAll, byGroup, ratingCount, enjoyed, useful, learned }) => (
-              <div key={task.id} className="bg-white/50 rounded-xl overflow-hidden border border-gray-100">
+              <div key={task.id} className="bg-white/60 rounded-xl border border-gray-100 p-5">
 
-                {/* Kopfzeile – klickbar für Details */}
-                <button
-                  className="w-full text-left p-4"
-                  onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{task.iconEmoji}</span>
+                {/* Aufgaben-Kopf + Fortschrittsbalken */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">{task.iconEmoji}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-gray-800 text-sm">{task.title}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-700">
+                      <span className="text-sm font-bold text-primary-600">
                         {completedAll}/{totalParticipants} ({pctAll}%)
                       </span>
-                      {expandedTask === task.id
-                        ? <ChevronUp className="w-4 h-4 text-gray-400" />
-                        : <ChevronDown className="w-4 h-4 text-gray-400" />
-                      }
+                    </div>
+                    <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div style={{ width: `${pctAll}%` }}
+                        className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full" />
                     </div>
                   </div>
-                  <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div style={{ width: `${pctAll}%` }}
-                      className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" />
-                  </div>
-                </button>
+                </div>
 
-                {/* Detail-Aufklappbereich */}
-                {expandedTask === task.id && (
-                  <div className="border-t border-gray-100 p-4 space-y-4 bg-white/30">
-
-                    {/* Ratings */}
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                        <Star className="w-3 h-3" /> Bewertungen ({ratingCount} von {totalParticipants})
-                      </h4>
-                      {ratingCount === 0 ? (
-                        <p className="text-sm text-gray-400 italic">Noch keine Bewertungen</p>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-3">
-                          {RATING_QUESTIONS.map(q => {
-                            const val = q.id === 'enjoyed' ? enjoyed : q.id === 'useful' ? useful : learned;
-                            return (
-                              <div key={q.id} className="bg-white rounded-lg p-3 text-center border border-gray-100">
-                                <div className="text-2xl mb-1">{q.emoji}</div>
-                                <div className="text-xs text-gray-500 mb-1">{q.label}</div>
-                                <div className="text-amber-500 text-sm font-bold">
-                                  {val !== null ? (
-                                    <>{'★'.repeat(Math.round(val))}{'☆'.repeat(3 - Math.round(val))}</>
-                                  ) : '–'}
-                                </div>
-                                <div className="text-xs text-gray-500">{val !== null ? `${val.toFixed(1)} / 3` : ''}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Gruppen-Aufschlüsselung */}
-                    {allGroups.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                          Gruppen-Aufschlüsselung
-                        </h4>
-                        <div className="space-y-2">
-                          {byGroup.map(g => (
-                            <div key={g.group} className="flex items-center gap-3">
-                              <span className="text-xs font-semibold text-gray-600 w-24 truncate capitalize">{g.group}</span>
-                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div style={{ width: `${g.pct}%` }}
-                                  className="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full" />
-                              </div>
-                              <span className="text-xs font-bold text-gray-600 w-20 text-right">
-                                {g.completed}/{g.count} ({g.pct}%)
-                              </span>
+                {/* Bewertungen */}
+                <div className="mt-4">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Star className="w-3 h-3" /> Bewertungen ({ratingCount} von {totalParticipants})
+                  </h4>
+                  {ratingCount === 0 ? (
+                    <p className="text-sm text-gray-400 italic">Noch keine Bewertungen eingegangen</p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                      {RATING_QUESTIONS.map(q => {
+                        const val = q.id === 'enjoyed' ? enjoyed : q.id === 'useful' ? useful : learned;
+                        return (
+                          <div key={q.id} className="bg-white rounded-lg p-3 text-center border border-gray-100">
+                            <div className="text-2xl mb-1">{q.emoji}</div>
+                            <div className="text-xs text-gray-500 mb-1">{q.label}</div>
+                            <div className="text-amber-500 text-sm font-bold">
+                              {val !== null ? (
+                                <>{'★'.repeat(Math.round(val))}{'☆'.repeat(3 - Math.round(val))}</>
+                              ) : '–'}
                             </div>
-                          ))}
-                          {/* Ohne Gruppe */}
-                          {(() => {
-                            const noGroup = allUsers.filter(u => !u.group);
-                            if (noGroup.length === 0) return null;
-                            const completed = noGroup.filter(u =>
-                              task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
-                            ).length;
-                            const pct = Math.round(completed / noGroup.length * 100);
-                            return (
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-semibold text-gray-400 w-24">Ohne Gruppe</span>
-                                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                  <div style={{ width: `${pct}%` }}
-                                    className="h-full bg-gray-400 rounded-full" />
-                                </div>
-                                <span className="text-xs font-bold text-gray-400 w-20 text-right">
-                                  {completed}/{noGroup.length} ({pct}%)
-                                </span>
-                              </div>
-                            );
-                          })()}
+                            <div className="text-xs text-gray-500">{val !== null ? `${val.toFixed(1)} / 3` : ''}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Gruppen-Aufschlüsselung */}
+                {allGroups.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      Nach Gruppe
+                    </h4>
+                    <div className="space-y-1.5">
+                      {byGroup.map(g => (
+                        <div key={g.group} className="flex items-center gap-3">
+                          <span className="text-xs font-semibold text-gray-600 w-24 truncate capitalize">{g.group}</span>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div style={{ width: `${g.pct}%` }}
+                              className="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full" />
+                          </div>
+                          <span className="text-xs font-bold text-gray-600 w-20 text-right">
+                            {g.completed}/{g.count} ({g.pct}%)
+                          </span>
                         </div>
-                      </div>
-                    )}
+                      ))}
+                      {/* Ohne Gruppe */}
+                      {(() => {
+                        const noGroup = allUsers.filter(u => !u.group);
+                        if (noGroup.length === 0) return null;
+                        const completed = noGroup.filter(u =>
+                          task.subtasks.every((_, i) => u.completedSubtasks?.[`${task.id}-${i}`])
+                        ).length;
+                        const pct = Math.round(completed / noGroup.length * 100);
+                        return (
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-semibold text-gray-400 w-24">Ohne Gruppe</span>
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div style={{ width: `${pct}%` }}
+                                className="h-full bg-gray-400 rounded-full" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-400 w-20 text-right">
+                              {completed}/{noGroup.length} ({pct}%)
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 )}
+
               </div>
             ))}
           </div>
