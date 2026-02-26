@@ -122,6 +122,11 @@ export default function AdminPage() {
         ? Math.round(rated.reduce((a, u) => a + (u.ratings[task.id]?.[key] ?? 0), 0) / rated.length * 10) / 10
         : null;
 
+    // Kommentare sammeln
+    const comments = allUsers
+      .filter(u => u.ratings?.[task.id]?.comment)
+      .map(u => ({ name: u.username, text: u.ratings[task.id].comment!, date: u.ratings[task.id].timestamp }));
+
     return {
       task,
       completedAll,
@@ -131,6 +136,7 @@ export default function AdminPage() {
       enjoyed: avgRating('enjoyed'),
       useful: avgRating('useful'),
       learned: avgRating('learned'),
+      comments,
     };
   });
 
@@ -188,7 +194,7 @@ export default function AdminPage() {
             Aufgaben-Auswertung
           </h2>
           <div className="space-y-6">
-            {taskStats.map(({ task, completedAll, pctAll, byGroup, ratingCount, enjoyed, useful, learned }) => (
+            {taskStats.map(({ task, completedAll, pctAll, byGroup, ratingCount, enjoyed, useful, learned, comments }) => (
               <div key={task.id} className="bg-white/60 rounded-xl border border-gray-100 p-5">
 
                 {/* Aufgaben-Kopf + Fortschrittsbalken */}
@@ -235,6 +241,26 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Allgemeine Rückmeldungen */}
+                {comments.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      💬 Rückmeldungen ({comments.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {comments.map((c, i) => (
+                        <div key={i} className="bg-white rounded-lg p-3 border border-gray-100 text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-gray-700">{c.name}</span>
+                            <span className="text-xs text-gray-400">{new Date(c.date).toLocaleDateString('de-CH')}</span>
+                          </div>
+                          <p className="text-gray-600 italic">{c.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Gruppen-Aufschlüsselung */}
                 {allGroups.length > 0 && (

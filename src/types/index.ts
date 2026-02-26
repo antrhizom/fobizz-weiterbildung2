@@ -15,6 +15,7 @@ export interface TaskRating {
   enjoyed: number;
   useful: number;
   learned: number;
+  comment?: string;
   timestamp: string;
 }
 

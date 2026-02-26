@@ -16,6 +16,7 @@ export default function AufgabenPage() {
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState<number | null>(null);
   const [tempRating, setTempRating] = useState<Record<string, number>>({});
+  const [tempComment, setTempComment] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
@@ -43,7 +44,7 @@ export default function AufgabenPage() {
     if (task) {
       const allCompleted = task.subtasks.every((_, i) => newSubtasks[`${taskId}-${i}`]);
       if (allCompleted && !user.ratings[taskId]) {
-        setTimeout(() => { setShowRatingModal(taskId); setTempRating({}); }, 300);
+        setTimeout(() => { setShowRatingModal(taskId); setTempRating({}); setTempComment(''); }, 300);
       }
     }
   };
@@ -54,6 +55,7 @@ export default function AufgabenPage() {
       enjoyed: tempRating['enjoyed'] ?? 0,
       useful: tempRating['useful'] ?? 0,
       learned: tempRating['learned'] ?? 0,
+      ...(tempComment.trim() ? { comment: tempComment.trim() } : {}),
       timestamp: new Date().toISOString()
     };
     const newRatings = { ...user.ratings, [showRatingModal]: ratingData };
@@ -61,6 +63,7 @@ export default function AufgabenPage() {
     await updateUserRatings(user.userId, newRatings);
     setShowRatingModal(null);
     setTempRating({});
+    setTempComment('');
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt...</div></div>;
@@ -219,6 +222,11 @@ export default function AufgabenPage() {
                         ) : null;
                       })}
                     </div>
+                    {user.ratings[task.id]?.comment && (
+                      <div className="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic">
+                        💬 {user.ratings[task.id].comment}
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -270,7 +278,22 @@ export default function AufgabenPage() {
                 ))}
               </div>
 
-              <div className="flex gap-3 mt-8">
+              <div className="mt-6">
+                <label className="block font-semibold mb-3 text-gray-800">
+                  💬 Allgemeine Rückmeldung <span className="font-normal text-gray-500 text-sm">(optional)</span>
+                </label>
+                <textarea
+                  value={tempComment}
+                  onChange={(e) => setTempComment(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors resize-none text-sm"
+                  placeholder="Was möchtest du uns noch mitteilen? Feedback, Verbesserungsvorschläge, Anmerkungen..."
+                />
+                <p className="text-xs text-gray-400 mt-1 text-right">{tempComment.length}/500</p>
+              </div>
+
+              <div className="flex gap-3 mt-6">
                 <button onClick={() => setShowRatingModal(null)}
                   className="flex-1 py-3 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
                   Überspringen
