@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { onAuthChange, getUserData } from '@/lib/auth';
-import { updateUserSubtasks, updateUserRatings } from '@/lib/firestore';
+import { updateUserSubtasks, updateUserRatings, getAllUsers } from '@/lib/firestore';
 import { User, TaskRating } from '@/types';
 import { TASKS, RATING_QUESTIONS, RATING_OPTIONS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
@@ -17,12 +17,38 @@ export default function AufgabenPage() {
   const [showRatingModal, setShowRatingModal] = useState<number | null>(null);
   const [tempRating, setTempRating] = useState<Record<string, number>>({});
   const [tempComment, setTempComment] = useState('');
+  const [avgRatings, setAvgRatings] = useState<Record<number, { enjoyed: number; useful: number; learned: number; count: number }>>({});
+
+  const loadAverages = async () => {
+    try {
+      const allUsers = await getAllUsers();
+      const avgs: typeof avgRatings = {};
+      TASKS.forEach(task => {
+        const rated = allUsers.filter(u => u.ratings?.[task.id]);
+        if (rated.length > 0) {
+          avgs[task.id] = {
+            enjoyed: Math.round(rated.reduce((a, u) => a + (u.ratings[task.id]?.enjoyed ?? 0), 0) / rated.length * 10) / 10,
+            useful: Math.round(rated.reduce((a, u) => a + (u.ratings[task.id]?.useful ?? 0), 0) / rated.length * 10) / 10,
+            learned: Math.round(rated.reduce((a, u) => a + (u.ratings[task.id]?.learned ?? 0), 0) / rated.length * 10) / 10,
+            count: rated.length,
+          };
+        }
+      });
+      setAvgRatings(avgs);
+    } catch { /* silent */ }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
-      if (userData) setUser(userData);
+      if (userData) {
+        setUser(userData);
+        // Lade Durchschnitte wenn der User bereits Bewertungen hat
+        if (Object.keys(userData.ratings || {}).length > 0) {
+          loadAverages();
+        }
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -64,6 +90,7 @@ export default function AufgabenPage() {
     setShowRatingModal(null);
     setTempRating({});
     setTempComment('');
+    loadAverages();
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl text-gray-600">Lädt...</div></div>;
@@ -225,6 +252,28 @@ export default function AufgabenPage() {
                     {user.ratings[task.id]?.comment && (
                       <div className="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic">
                         💬 {user.ratings[task.id].comment}
+                      </div>
+                    )}
+
+                    {/* Durchschnittsbewertung aller Teilnehmenden */}
+                    {avgRatings[task.id] && (
+                      <div className="mt-4 pt-3 border-t border-dashed border-gray-200">
+                        <p className="font-semibold mb-3 text-sm text-gray-500">📊 Durchschnitt aller Teilnehmenden ({avgRatings[task.id].count} Bewertungen):</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          {RATING_QUESTIONS.map(q => {
+                            const val = avgRatings[task.id]?.[q.id];
+                            return (
+                              <div key={q.id} className="bg-gray-50 rounded-lg p-3 text-center">
+                                <div className="text-xl mb-1">{q.emoji}</div>
+                                <div className="text-xs text-gray-500 mb-1">{q.label}</div>
+                                <div className="text-amber-500 text-sm font-bold">
+                                  {'★'.repeat(Math.round(val))}{'☆'.repeat(3 - Math.round(val))}
+                                </div>
+                                <div className="text-xs text-gray-400">{val.toFixed(1)} / 3</div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
