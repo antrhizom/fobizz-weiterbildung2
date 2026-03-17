@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { onAuthChange, getUserData } from '@/lib/auth';
-import { getAllUsers } from '@/lib/firestore';
+import { getUsersCount } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
@@ -27,18 +27,18 @@ const SECTION_CONFIRM_KEYS = [
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [totalParticipants, setTotalParticipants] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
-      const [userData, users] = await Promise.all([
+      const [userData, count] = await Promise.all([
         getUserData(currentUser.uid),
-        getAllUsers()
+        getUsersCount()
       ]);
       if (userData) setUser(userData);
-      setAllUsers(users);
+      setTotalParticipants(count);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -75,27 +75,8 @@ export default function DashboardPage() {
     '/aufgaben': Math.round((myTaskDone / totalSubtasks) * 100),
   };
 
-  // Globale Statistik (nur fobizz_users – allUsers enthält nur diese)
-  const totalParticipants = allUsers.length;
-  const avgProgress = totalParticipants > 0
-    ? Math.round(
-        allUsers.reduce((acc, u) => {
-          const taskDone = countTaskSubtasks(u.completedSubtasks);
-          const sectionDone = SECTION_CONFIRM_KEYS.filter(k => u.completedSubtasks?.[k]).length;
-          return acc + ((taskDone + sectionDone) / totalAll) * 100;
-        }, 0) / totalParticipants
-      )
-    : 0;
-
-  // Teilnehmende mit ≥50% Gesamtfortschritt
-  const halfwayCount = allUsers.filter(u => {
-    const taskDone = countTaskSubtasks(u.completedSubtasks);
-    const sectionDone = SECTION_CONFIRM_KEYS.filter(k => u.completedSubtasks?.[k]).length;
-    return ((taskDone + sectionDone) / totalAll) >= 0.5;
-  }).length;
-
-  // Erstellte Zertifikate: User die den Drucken-Button auf /zertifikat geklickt haben
-  const certificatesIssued = allUsers.filter(u => u.completedSubtasks?.['cert-issued']).length;
+  // Erstellte Zertifikate: prüfen ob eigenes Zertifikat erstellt
+  const hasCertificate = !!user.completedSubtasks?.['cert-issued'];
 
   return (
     <div className="min-h-screen p-4">
@@ -129,20 +110,20 @@ export default function DashboardPage() {
 
         <Navigation />
 
-        {/* Statistik: ≥50% + Zertifikate */}
+        {/* Statistik: Teilnehmende + Zertifikat */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="glass-card rounded-2xl p-6 text-center">
             <Users className="w-8 h-8 text-accent-600 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{halfwayCount}</div>
-            <div className="text-gray-600 text-sm">von {totalParticipants} Teilnehmenden haben ≥50% erledigt</div>
+            <div className="text-4xl font-bold gradient-text mb-1">{totalParticipants}</div>
+            <div className="text-gray-600 text-sm">Teilnehmende insgesamt</div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="glass-card rounded-2xl p-6 text-center">
             <Award className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{certificatesIssued}</div>
-            <div className="text-gray-600 text-sm">erstellte Zertifikate</div>
+            <div className="text-4xl font-bold gradient-text mb-1">{hasCertificate ? '✓' : '–'}</div>
+            <div className="text-gray-600 text-sm">{hasCertificate ? 'Zertifikat erstellt' : 'Zertifikat ausstehend'}</div>
           </motion.div>
         </div>
 
