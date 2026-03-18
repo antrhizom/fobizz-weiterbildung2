@@ -70,7 +70,7 @@ export default function PinnwandPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Pinnwand</h1>
-              <p className="text-gray-600">Angemeldet als <strong>{user.username}</strong></p>
+              <p className="text-gray-600">Teile deine Gedanken mit allen</p>
             </div>
           </div>
         </motion.div>
@@ -125,9 +125,7 @@ export default function PinnwandPage() {
             <div className="space-y-4">
               {comments.map((comment, idx) => {
                 const isOwn = comment.userId === user.userId;
-                // Generiere eine konsistente Farbe basierend auf dem Username
-                const colorIndex = comment.username.charCodeAt(0) % avatarColors.length;
-                const avatarColor = avatarColors[colorIndex];
+                const avatarColor = avatarColors[idx % avatarColors.length];
 
                 return (
                   <motion.div key={comment.id}
@@ -138,17 +136,16 @@ export default function PinnwandPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${avatarColor}`}>
-                          {comment.username.charAt(0).toUpperCase()}
+                          💬
                         </div>
                         <div>
                           <div className="font-bold text-gray-800 flex items-center gap-2">
-                            {comment.username}
+                            Teilnehmer/in
                             {isOwn && <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">Du</span>}
                           </div>
                           <div className="text-xs text-gray-500">
                             {new Date(comment.timestamp).toLocaleDateString('de-DE', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
+                              day: '2-digit', month: '2-digit', year: 'numeric'
                             })}
                           </div>
                         </div>

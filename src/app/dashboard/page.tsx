@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { onAuthChange, getUserData } from '@/lib/auth';
-import { getUsersCount } from '@/lib/firestore';
+// getUsersCount nicht mehr verwendet (anonymisiert)
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, Users, MessageSquare, Award } from 'lucide-react';
+import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, MessageSquare, Award } from 'lucide-react';
 import Link from 'next/link';
 
 // Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
@@ -27,18 +27,13 @@ const SECTION_CONFIRM_KEYS = [
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [totalParticipants, setTotalParticipants] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
-      const [userData, count] = await Promise.all([
-        getUserData(currentUser.uid),
-        getUsersCount()
-      ]);
+      const userData = await getUserData(currentUser.uid);
       if (userData) setUser(userData);
-      setTotalParticipants(count);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -110,16 +105,9 @@ export default function DashboardPage() {
 
         <Navigation />
 
-        {/* Statistik: Teilnehmende + Zertifikat */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        {/* Statistik: Zertifikat */}
+        <div className="grid grid-cols-1 gap-4 mb-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card rounded-2xl p-6 text-center">
-            <Users className="w-8 h-8 text-accent-600 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{totalParticipants}</div>
-            <div className="text-gray-600 text-sm">Teilnehmende insgesamt</div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="glass-card rounded-2xl p-6 text-center">
             <Award className="w-8 h-8 text-amber-500 mx-auto mb-3" />
             <div className="text-4xl font-bold gradient-text mb-1">{hasCertificate ? '✓' : '–'}</div>
