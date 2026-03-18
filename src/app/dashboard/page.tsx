@@ -16,12 +16,38 @@ function countTaskSubtasks(completedSubtasks: Record<string, string> | undefined
   return Object.keys(completedSubtasks || {}).filter(k => /^\d+-\d+$/.test(k)).length;
 }
 
-// Lernbereich-Bestätigungen zählen
-const SECTION_CONFIRM_KEYS = [
-  'fobizz-q1', 'fobizz-q2', 'fobizz-q3', 'fobizz-q4', // Was ist Fobizz?
-  'paed-q1', 'paed-q2', 'paed-q3', 'paed-q4',           // Pädagogik
-  'bsp-q1', 'bsp-q2', 'bsp-q3',                         // Beispiele
-];
+// Aktivitäts- und Bestätigungs-Keys pro Modul
+const MODULE_TRACKING = {
+  '/was-ist-fobizz': {
+    prefixes: ['wif-acc-', 'wif-rev-', 'wif-quiz-'],
+    confirms: ['fobizz-q1', 'fobizz-q2', 'fobizz-q3', 'fobizz-q4'],
+    totalActivities: 11, totalConfirms: 4,
+  },
+  '/paedagogik': {
+    prefixes: ['paed-acc-', 'paed-rev-', 'paed-quiz-'],
+    confirms: ['paed-q1', 'paed-q2', 'paed-q3', 'paed-q4'],
+    totalActivities: 14, totalConfirms: 4,
+  },
+  '/beispiele': {
+    prefixes: ['bsp-ex-', 'bsp-quiz-'],
+    confirms: ['bsp-q1', 'bsp-q2', 'bsp-q3'],
+    totalActivities: 8, totalConfirms: 3,
+  },
+};
+
+function countModuleProgress(subs: Record<string, string> | undefined, href: string): number {
+  const mod = MODULE_TRACKING[href as keyof typeof MODULE_TRACKING];
+  if (!mod || !subs) return 0;
+  const activityDone = Object.keys(subs).filter(k => mod.prefixes.some(p => k.startsWith(p))).length;
+  const confirmDone = mod.confirms.filter(k => subs[k]).length;
+  const total = mod.totalActivities + mod.totalConfirms;
+  return Math.round(((activityDone + confirmDone) / total) * 100);
+}
+
+// Alle zählbaren Keys für Gesamtfortschritt
+const ALL_CONFIRM_KEYS = Object.values(MODULE_TRACKING).flatMap(m => m.confirms);
+const TOTAL_ACTIVITIES = Object.values(MODULE_TRACKING).reduce((a, m) => a + m.totalActivities, 0);
+const TOTAL_CONFIRMS = ALL_CONFIRM_KEYS.length;
 
 
 export default function DashboardPage() {
@@ -48,27 +74,24 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const totalSubtasks = TASKS.reduce((acc, task) => acc + task.subtasks.length, 0);
-  const totalSectionConfirms = SECTION_CONFIRM_KEYS.length;
-  const totalAll = totalSubtasks + totalSectionConfirms;
+  const totalAll = totalSubtasks + TOTAL_ACTIVITIES + TOTAL_CONFIRMS;
 
-  // Eigener Fortschritt (nur Aufgaben-Subtasks)
-  const myTaskDone = countTaskSubtasks(user.completedSubtasks);
-  const mySectionDone = SECTION_CONFIRM_KEYS.filter(k => user.completedSubtasks?.[k]).length;
-  const myTotalDone = myTaskDone + mySectionDone;
+  // Eigener Fortschritt
+  const subs = user.completedSubtasks || {};
+  const myTaskDone = countTaskSubtasks(subs);
+  const myActivityDone = Object.keys(subs).filter(k =>
+    Object.values(MODULE_TRACKING).some(m => m.prefixes.some(p => k.startsWith(p)))
+  ).length;
+  const myConfirmDone = ALL_CONFIRM_KEYS.filter(k => subs[k]).length;
+  const myTotalDone = myTaskDone + myActivityDone + myConfirmDone;
   const progress = Math.round((myTotalDone / totalAll) * 100);
 
-  // Lernbereiche – Fortschritt pro Modul (Bestätigungen)
+  // Lernbereiche – Fortschritt pro Modul (Aktivitäten + Bestätigungen)
   const moduleProgress: Record<string, number> = {
-    '/was-ist-fobizz': Math.round(
-      (['fobizz-q1','fobizz-q2','fobizz-q3','fobizz-q4'].filter(k => user.completedSubtasks?.[k]).length / 4) * 100
-    ),
-    '/paedagogik': Math.round(
-      (['paed-q1','paed-q2','paed-q3','paed-q4'].filter(k => user.completedSubtasks?.[k]).length / 4) * 100
-    ),
-    '/beispiele': Math.round(
-      (['bsp-q1','bsp-q2','bsp-q3'].filter(k => user.completedSubtasks?.[k]).length / 3) * 100
-    ),
-    '/aufgaben': Math.round((myTaskDone / totalSubtasks) * 100),
+    '/was-ist-fobizz': countModuleProgress(subs, '/was-ist-fobizz'),
+    '/paedagogik': countModuleProgress(subs, '/paedagogik'),
+    '/beispiele': countModuleProgress(subs, '/beispiele'),
+    '/aufgaben': totalSubtasks > 0 ? Math.round((myTaskDone / totalSubtasks) * 100) : 0,
   };
 
   // Erstellte Zertifikate: prüfen ob eigenes Zertifikat erstellt
