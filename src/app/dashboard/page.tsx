@@ -141,10 +141,10 @@ export default function DashboardPage() {
                         </div>
                         <h3 className="text-base font-bold text-gray-800 mb-1">{mod.title}</h3>
                         {/* Mini-Fortschrittsbalken */}
-                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mt-2">
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
                           <div
-                            style={{ width: `${pct}%` }}
-                            className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-400' : mod.barColor}`}
+                            style={{ width: `${Math.max(pct, pct > 0 ? 5 : 0)}%`, background: pct === 100 ? '#4ade80' : mod.barGradient }}
+                            className="h-full rounded-full transition-all duration-500"
                           />
                         </div>
                       </div>
@@ -203,7 +203,7 @@ const modules = [
     badge: 'Seite 1',
     badgeBg: 'bg-blue-100',
     badgeText: 'text-blue-700',
-    barColor: 'bg-gradient-to-r from-blue-400 to-primary-500',
+    barGradient: 'linear-gradient(to right, #60a5fa, #3b82f6)',
     title: 'Was ist Fobizz?',
   },
   {
@@ -213,7 +213,7 @@ const modules = [
     badge: 'Seite 2',
     badgeBg: 'bg-violet-100',
     badgeText: 'text-violet-700',
-    barColor: 'bg-gradient-to-r from-violet-400 to-purple-500',
+    barGradient: 'linear-gradient(to right, #a78bfa, #9333ea)',
     title: 'Pädagogik & Didaktik',
   },
   {
@@ -223,7 +223,7 @@ const modules = [
     badge: 'Seite 3',
     badgeBg: 'bg-amber-100',
     badgeText: 'text-amber-700',
-    barColor: 'bg-gradient-to-r from-amber-400 to-orange-400',
+    barGradient: 'linear-gradient(to right, #fbbf24, #f97316)',
     title: 'Umsetzungsbeispiele',
   },
   {
@@ -233,7 +233,7 @@ const modules = [
     badge: 'Seite 4',
     badgeBg: 'bg-green-100',
     badgeText: 'text-green-700',
-    barColor: 'bg-gradient-to-r from-green-400 to-accent-500',
+    barGradient: 'linear-gradient(to right, #4ade80, #22c55e)',
     title: 'Deine Aufgaben',
   }
 ];
