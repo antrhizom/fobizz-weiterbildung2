@@ -46,7 +46,7 @@ export async function registerParticipant(
     const uid = userCredential.user.uid;
 
     try {
-      await setDoc(doc(db, 'fobizz_users', uid), {
+      await setDoc(doc(db, 'fobizz2_users', uid), {
         username: username.trim(),
         code: code,
         email: virtualEmail,
@@ -75,10 +75,10 @@ export async function loginParticipantWithCode(code: string): Promise<User> {
   try {
     const { collection, query, where, getDocs } = await import('firebase/firestore');
 
-    // Suche in fobizz_users (upper- und lowercase)
+    // Suche in fobizz2_users (upper- und lowercase)
     let querySnapshot = null;
     for (const searchCode of [code.toUpperCase(), code.toLowerCase()]) {
-      const q = query(collection(db, 'fobizz_users'), where('code', '==', searchCode));
+      const q = query(collection(db, 'fobizz2_users'), where('code', '==', searchCode));
       const snap = await getDocs(q);
       if (!snap.empty) { querySnapshot = snap; break; }
     }
@@ -152,7 +152,7 @@ export function onAuthChange(callback: (user: FirebaseUser | null) => void) {
 }
 
 export async function getUserData(uid: string): Promise<User | null> {
-  const docSnap = await getDoc(doc(db, 'fobizz_users', uid));
+  const docSnap = await getDoc(doc(db, 'fobizz2_users', uid));
   if (docSnap.exists()) {
     return { userId: docSnap.id, ...docSnap.data() } as User;
   }

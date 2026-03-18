@@ -14,9 +14,9 @@ import {
 } from 'firebase/firestore';
 import { User, Comment, PDFData } from '@/types';
 
-const USERS_COLLECTION = 'fobizz_users';
-const COMMENTS_COLLECTION = 'fobizz_comments';
-const PDFS_COLLECTION = 'fobizz_pdfs';
+const USERS_COLLECTION = 'fobizz2_users';
+const COMMENTS_COLLECTION = 'fobizz2_comments';
+const PDFS_COLLECTION = 'fobizz2_pdfs';
 
 // ==================== USER OPERATIONS ====================
 
