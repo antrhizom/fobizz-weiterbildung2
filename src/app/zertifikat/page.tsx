@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { onAuthChange, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData, logout } from '@/lib/auth';
 import { updateUserSubtasks } from '@/lib/firestore';
 import { User } from '@/types';
 import Navigation from '@/components/Navigation';
@@ -61,6 +61,7 @@ export default function ZertifikatPage() {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
+      if (!userData) { await logout(); router.push('/login'); return; }
       if (userData) {
         setUser(userData);
         setName(userData.username || '');

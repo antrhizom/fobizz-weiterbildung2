@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { onAuthChange, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData, logout } from '@/lib/auth';
 import { createComment, getAllComments, deleteComment } from '@/lib/firestore';
 import { User, Comment } from '@/types';
 import Navigation from '@/components/Navigation';
@@ -24,7 +24,8 @@ export default function PinnwandPage() {
         getUserData(currentUser.uid),
         getAllComments()
       ]);
-      if (userData) setUser(userData);
+      if (!userData) { await logout(); router.push('/login'); return; }
+      setUser(userData);
       setComments(commentsData);
       setLoading(false);
     });

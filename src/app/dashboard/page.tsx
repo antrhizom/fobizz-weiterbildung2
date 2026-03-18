@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { onAuthChange, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData, logout } from '@/lib/auth';
 // getUsersCount nicht mehr verwendet (anonymisiert)
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
@@ -33,7 +33,8 @@ export default function DashboardPage() {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
-      if (userData) setUser(userData);
+      if (!userData) { await logout(); router.push('/login'); return; }
+      setUser(userData);
       setLoading(false);
     });
     return () => unsubscribe();

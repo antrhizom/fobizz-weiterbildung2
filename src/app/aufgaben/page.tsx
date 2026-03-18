@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { onAuthChange, getUserData } from '@/lib/auth';
+import { onAuthChange, getUserData, logout } from '@/lib/auth';
 import { updateUserSubtasks, updateUserRatings, getAllUsers } from '@/lib/firestore';
 import { User, TaskRating } from '@/types';
 import { TASKS, RATING_QUESTIONS, RATING_OPTIONS } from '@/lib/constants';
@@ -42,6 +42,7 @@ export default function AufgabenPage() {
     const unsubscribe = onAuthChange(async (currentUser) => {
       if (!currentUser) { router.push('/login'); return; }
       const userData = await getUserData(currentUser.uid);
+      if (!userData) { await logout(); router.push('/login'); return; }
       if (userData) {
         setUser(userData);
         // Lade Durchschnitte wenn der User bereits Bewertungen hat
