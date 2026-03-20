@@ -137,16 +137,21 @@ export default function AdminPage() {
         <Navigation />
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <div className="grid md:grid-cols-5 gap-4 mb-6">
           <div className="glass-card rounded-2xl p-6 text-center">
             <Users className="w-8 h-8 text-primary-600 mx-auto mb-3" />
             <div className="text-4xl font-bold gradient-text mb-1">{totalParticipants}</div>
-            <div className="text-gray-600 text-sm">Teilnehmende</div>
+            <div className="text-gray-600 text-sm">Gestartet</div>
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">📊</div>
             <div className="text-4xl font-bold gradient-text mb-1">{avgProgress}%</div>
             <div className="text-gray-600 text-sm">Ø Fortschritt</div>
+          </div>
+          <div className="glass-card rounded-2xl p-6 text-center">
+            <div className="text-4xl mb-3">📈</div>
+            <div className="text-4xl font-bold gradient-text mb-1">{halfwayCount}</div>
+            <div className="text-gray-600 text-sm">≥50% Fortschritt</div>
           </div>
           <div className="glass-card rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">✅</div>
