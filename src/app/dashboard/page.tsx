@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { onAuthChange, getUserData, logout } from '@/lib/auth';
-// getUsersCount nicht mehr verwendet (anonymisiert)
+import { getAllUsers } from '@/lib/firestore';
 import { User } from '@/types';
 import { TASKS } from '@/lib/constants';
 import Navigation from '@/components/Navigation';
-import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, MessageSquare, Award } from 'lucide-react';
+import { Info, BookOpen, Lightbulb, CheckSquare, ArrowRight, MessageSquare, Award, Users } from 'lucide-react';
 import Link from 'next/link';
 
 // Nur Aufgaben-Keys zählen (Format: "1-0", "2-3", etc.)
@@ -53,6 +53,7 @@ const TOTAL_CONFIRMS = ALL_CONFIRM_KEYS.length;
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function DashboardPage() {
       const userData = await getUserData(currentUser.uid);
       if (!userData) { await logout(); router.push('/login'); return; }
       setUser(userData);
+      try { setAllUsers(await getAllUsers()); } catch {}
       setLoading(false);
     });
     return () => unsubscribe();
@@ -129,15 +131,42 @@ export default function DashboardPage() {
 
         <Navigation />
 
-        {/* Statistik: Zertifikat */}
-        <div className="grid grid-cols-1 gap-4 mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card rounded-2xl p-6 text-center">
-            <Award className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-            <div className="text-4xl font-bold gradient-text mb-1">{hasCertificate ? '✓' : '–'}</div>
-            <div className="text-gray-600 text-sm">{hasCertificate ? 'Zertifikat erstellt' : 'Zertifikat ausstehend'}</div>
-          </motion.div>
-        </div>
+        {/* Anonyme Teilnehmer-Statistik */}
+        {(() => {
+          const totalParticipants = allUsers.length;
+          const halfwayCount = allUsers.filter(u => {
+            const uS = u.completedSubtasks || {};
+            const td = countTaskSubtasks(uS);
+            const ad = Object.keys(uS).filter(k =>
+              Object.values(MODULE_TRACKING).some(m => m.prefixes.some(p => k.startsWith(p)))
+            ).length;
+            const cd = ALL_CONFIRM_KEYS.filter(k => uS[k]).length;
+            return ((td + ad + cd) / totalAll) >= 0.5;
+          }).length;
+          const certsIssued = allUsers.filter(u => u.completedSubtasks?.['cert-issued']).length;
+          return (
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className="glass-card rounded-2xl p-5 text-center">
+                <Users className="w-7 h-7 text-primary-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold gradient-text mb-1">{totalParticipants}</div>
+                <div className="text-gray-600 text-xs">Gestartet</div>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                className="glass-card rounded-2xl p-5 text-center">
+                <div className="text-2xl mb-2">📈</div>
+                <div className="text-3xl font-bold gradient-text mb-1">{halfwayCount}</div>
+                <div className="text-gray-600 text-xs">≥50% Fortschritt</div>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="glass-card rounded-2xl p-5 text-center">
+                <Award className="w-7 h-7 text-amber-500 mx-auto mb-2" />
+                <div className="text-3xl font-bold gradient-text mb-1">{certsIssued}</div>
+                <div className="text-gray-600 text-xs">Zertifikate erstellt</div>
+              </motion.div>
+            </div>
+          );
+        })()}
 
         {/* 4 Lernbereiche mit Prozent */}
         <h2 className="text-xl font-bold mb-4 gradient-text">Deine Lernbereiche</h2>
